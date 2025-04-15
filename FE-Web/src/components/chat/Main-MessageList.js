@@ -1,15 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, ListGroup, Image, Dropdown, Card } from 'react-bootstrap';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  ListGroup,
+  Image,
+  Dropdown,
+  Card,
+} from "react-bootstrap";
+import "bootstrap/dist/css/bootstrap.min.css";
 import styled from "styled-components";
-import axiosClient from '../../api/axiosClient';
+import axiosClient from "../../api/axiosClient";
 
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faThumbsUp, faReply } from '@fortawesome/free-solid-svg-icons';
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faThumbsUp, faReply } from "@fortawesome/free-solid-svg-icons";
 
-import { useGlobalState } from '../../util/state';
+import { useGlobalState } from "../../util/state";
 
 const StyledListGroup = styled(ListGroup)`
   max-height: 83vh;
@@ -17,191 +25,214 @@ const StyledListGroup = styled(ListGroup)`
   scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-track-color: transparent;
-  scrollbar-color: #DEDEDE transparent;
+  scrollbar-color: #dedede transparent;
 `;
 const MessageList = (id) => {
   var socket = id.socket;
   const [show, setShow] = useState(false);
   const [userInfo, setUserInfo] = useState([]);
   const [forwarded, setForwarded] = useState([]);
-  const [messageId, setMessageId] = useState('');
+  const [messageId, setMessageId] = useState("");
   const handleClose = () => setShow(false);
   const [pinnedMessages, setPinnedMessages] = useState([]);
   const [isPinTableVisible, setIsPinTableVisible] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPinTable, setShowPinTable] = useState(false);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState("");
 
-  const [replyMessage, setReplyMessage] = useGlobalState('replyMessage')
+  useEffect(() => {
+    const fetchCurrentUserAvatar = async () => {
+      try {
+        const userId = JSON.parse(localStorage.getItem("userId"));
+        if (userId) {
+          const response = await axiosClient.get("/profile");
+          if (response && response.data && response.data.data) {
+            setCurrentUserAvatar(response.data.data.avatar);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching current user avatar:", error);
+      }
+    };
+
+    fetchCurrentUserAvatar();
+  }, []);
+
+  const [replyMessage, setReplyMessage] = useGlobalState("replyMessage");
   // console.log("socket", socket);
-    const [messages, setMessages] = useState([  ]);
-    useEffect(() => {
-      const fetchMessages = async () => {
-        try {
-          if (id.id) {
-            const res = await axiosClient.get(`/messages/${id.id}`);
-            // console.log("messages123123123: ", res.data.data)
-            if (res.data.data || res.status === 200)
-            {
-
-              setMessages(res.data.data);
-              // res.data.data.map(message=>{
-              //   if(message.pin )
-              //   setPinnedMessages([...pinnedMessages, message]);
-              // })
-              setPinnedMessages(
-                res.data.data.filter(message=>message.pin)
-              )
-            }
-
-            else{
-              setMessages([]);
-            }
+  const [messages, setMessages] = useState([]);
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        if (id.id) {
+          const res = await axiosClient.get(`/messages/${id.id}`);
+          // console.log("messages123123123: ", res.data.data)
+          if (res.data.data || res.status === 200) {
+            setMessages(res.data.data);
+            // res.data.data.map(message=>{
+            //   if(message.pin )
+            //   setPinnedMessages([...pinnedMessages, message]);
+            // })
+            setPinnedMessages(res.data.data.filter((message) => message.pin));
+          } else {
+            setMessages([]);
           }
-        } catch (error) {
-          setMessages([]);
-          // console.error("MessageList: ", error);
         }
+      } catch (error) {
+        setMessages([]);
+        // console.error("MessageList: ", error);
+      }
+    };
+    fetchMessages();
+  }, [id.id]);
+
+  const listGroupRef = useRef(null);
+  useEffect(() => {
+    if (listGroupRef.current) {
+      listGroupRef.current.scrollTop = listGroupRef.current.scrollHeight;
+    }
+  }, [listGroupRef.current, messages]);
+
+  useEffect(() => {
+    socket.on("message", (message) => {
+      const newMessage = {
+        id: message.id,
+        content: message.content,
+        sent: message.senderId,
+        reply: message.reply,
+        senderName: message.senderName,
+        avatarSender: message.avatarSender,
+        time: message.time,
+        type: message.type,
+        media: message.media,
+        pin: message.pin,
       };
-      fetchMessages();
-    }, [id.id]);
+      setMessages([...messages, newMessage]);
+    });
+  }, [messages]);
 
-    const listGroupRef = useRef(null);
-    useEffect(() => {
-      if (listGroupRef.current) {
-        listGroupRef.current.scrollTop = listGroupRef.current.scrollHeight;
+  const [showDropdownIndex, setShowDropdownIndex] = useState(null);
+  // const pinTableRef = useRef(null);
+
+  // // Scroll to pin-table when pin-table is clicked
+  // const scrollToPinTable = () => {
+  //   if (pinTableRef.current) {
+  //     pinTableRef.current.scrollIntoView({ behavior: 'smooth' });
+  //   }
+  // };
+  const handleMouseEnter = (index) => {
+    setShowDropdownIndex(index);
+  };
+
+  const handleMouseLeave = () => {
+    setShowDropdownIndex(null);
+  };
+
+  const handlePinMessage = async (messageId, idChatRoom) => {
+    try {
+      // Check if the message is already pinned
+      if (pinnedMessages.some((message) => message.id === messageId)) {
+        // Message is already pinned, do not proceed
+        return;
       }
-    }, [listGroupRef.current, messages]);
 
-    useEffect(() => {
-      socket.on('message', (message) => {
-        const newMessage = {
-          id: message.id,
-          content: message.content,
-          sent: message.senderId,
-          reply: message.reply,
-          senderName: message.senderName,
-          avatarSender: message.avatarSender,
-          time: message.time,
-          type: message.type,
-          media: message.media,
-          pin:message.pin,
-        }
-        setMessages([...messages, newMessage]);
-      })
-    }, [messages]);
-
-    const [showDropdownIndex, setShowDropdownIndex] = useState(null);
-// const pinTableRef = useRef(null);
-
-// // Scroll to pin-table when pin-table is clicked
-// const scrollToPinTable = () => {
-//   if (pinTableRef.current) {
-//     pinTableRef.current.scrollIntoView({ behavior: 'smooth' });
-//   }
-// };
-    const handleMouseEnter = (index) => {
-      setShowDropdownIndex(index);
-    };
-
-    const handleMouseLeave = () => {
-      setShowDropdownIndex(null);
-    };
-
-    const handlePinMessage = async (messageId,idChatRoom) => {
-      try {
-        // Check if the message is already pinned
-        if (pinnedMessages.some(message => message.id === messageId)) {
-          // Message is already pinned, do not proceed
-          return;
-        }
-
-        const response = await axiosClient.patch(`/pin-message/${messageId}`, {
-          data: {
-            chatRoomId: idChatRoom,
-          },
-        });
-        if (response.status === 200) {
-          // Update the UI to reflect the pinned message
-          setMessages(messages.map(message => message.id === messageId ? { ...message, pin: true } : message));
-
-          // Add the pinned message to the pinnedMessages array
-          const messageToAdd = messages.find(message => message.id === messageId);
-          setPinnedMessages([...pinnedMessages, messageToAdd]);
-          setShowPinTable(true);
-
-
-        } else {
-          // Handle other status codes if needed
-        }
-      } catch (error) {
-        // Handle errors if the request fails
-      }
-    };
-
-
-    const handleUnpin = async (messageId, idChatRoom) => {
-      try {
-        // Make a PATCH request to unpin the message
-        const response = await axiosClient.patch(`/unpin-message/${messageId}`, {
+      const response = await axiosClient.patch(`/pin-message/${messageId}`, {
+        data: {
           chatRoomId: idChatRoom,
-        });
+        },
+      });
+      if (response.status === 200) {
+        // Update the UI to reflect the pinned message
+        setMessages(
+          messages.map((message) =>
+            message.id === messageId ? { ...message, pin: true } : message
+          )
+        );
 
-        // Check if the request was successful
-        if (response.status === 200) {
-          // Update pinnedMessages state to remove the message with the specified messageId
-          setPinnedMessages(prevPinnedMessages =>
-            prevPinnedMessages.filter(message => message.id !== messageId)
-          );
-
-          // Check if there's only one pinned message left after unpinning
-          if (pinnedMessages.length === 1) {
-            setIsPinTableVisible(false); // Hide the pin table if only one message is pinned
-          }
-        } else {
-          // Handle unsuccessful response, maybe show an error message
-          console.error('Failed to unpin message');
-        }
-      } catch (error) {
-        // Handle any errors that occur during the request
-        console.error('Error unpinning message:', error);
+        // Add the pinned message to the pinnedMessages array
+        const messageToAdd = messages.find(
+          (message) => message.id === messageId
+        );
+        setPinnedMessages([...pinnedMessages, messageToAdd]);
+        setShowPinTable(true);
+      } else {
+        // Handle other status codes if needed
       }
-    };
+    } catch (error) {
+      // Handle errors if the request fails
+    }
+  };
 
-const handleDelete = async (messageId) => {
-  const res = await axiosClient.delete(`/message/${messageId}`);
-  if (res.status === 200)  setMessages(messages.filter(message => message.id !== messageId));
+  const handleUnpin = async (messageId, idChatRoom) => {
+    try {
+      // Make a PATCH request to unpin the message
+      const response = await axiosClient.patch(`/unpin-message/${messageId}`, {
+        chatRoomId: idChatRoom,
+      });
 
-  //   socket.emit('delete message', { chatRoomId: id.id, messageId });
-  //     socket.on('delete message', (message) => {
-  //       console.log('delete message', message);
-  //       setMessages(messages.filter(message => message.id !== message.id));
-  //     });
-  // }
-};
-const handleHide= async (messageId) => {
-  const confirm = window.confirm('Bạn có chắc chắn muốn ẩn tin nhắn này ở phía bạn?');
-  if (!confirm) return;
-  const res = await axiosClient.patch(`/hide-message/${messageId}`);
-  if (res.status === 200){
-    setMessages(messages.map(message => message.id === messageId ? { ...message, hided: true } : message));
+      // Check if the request was successful
+      if (response.status === 200) {
+        // Update pinnedMessages state to remove the message with the specified messageId
+        setPinnedMessages((prevPinnedMessages) =>
+          prevPinnedMessages.filter((message) => message.id !== messageId)
+        );
 
-  }
-};
-const handleUnsend = async (messageId) => {
-  // const confirm = window.confirm('Bạn có chắc chắn muốn thu hồi tin nhắn này?');
-  // if (!confirm) return;
+        // Check if there's only one pinned message left after unpinning
+        if (pinnedMessages.length === 1) {
+          setIsPinTableVisible(false); // Hide the pin table if only one message is pinned
+        }
+      } else {
+        // Handle unsuccessful response, maybe show an error message
+        console.error("Failed to unpin message");
+      }
+    } catch (error) {
+      // Handle any errors that occur during the request
+      console.error("Error unpinning message:", error);
+    }
+  };
 
-  const res = await axiosClient.patch(`/unsent-message/${messageId}`);
-  // if (res.status === 200) setMessages(messages.map(message => message.id === messageId ? { ...message, unsent: true } : message));
-  if (res.status === 200) socket.emit('unsend message', { chatRoomId: id.id, messageId });
-  // socket.on('unsend message', (a) => {
-  //   console.log('unsend message', a);
-  //   setMessages(messages.map(message => message.id === a.id ? { ...message, unsent: true } : message));
-  // });
-};
-const handleForward = async (messageId) => {
-  setForwarded([]);
-  setMessageId(messageId);
+  const handleDelete = async (messageId) => {
+    const res = await axiosClient.delete(`/message/${messageId}`);
+    if (res.status === 200)
+      setMessages(messages.filter((message) => message.id !== messageId));
+
+    //   socket.emit('delete message', { chatRoomId: id.id, messageId });
+    //     socket.on('delete message', (message) => {
+    //       console.log('delete message', message);
+    //       setMessages(messages.filter(message => message.id !== message.id));
+    //     });
+    // }
+  };
+  const handleHide = async (messageId) => {
+    const confirm = window.confirm(
+      "Bạn có chắc chắn muốn ẩn tin nhắn này ở phía bạn?"
+    );
+    if (!confirm) return;
+    const res = await axiosClient.patch(`/hide-message/${messageId}`);
+    if (res.status === 200) {
+      setMessages(
+        messages.map((message) =>
+          message.id === messageId ? { ...message, hided: true } : message
+        )
+      );
+    }
+  };
+  const handleUnsend = async (messageId) => {
+    // const confirm = window.confirm('Bạn có chắc chắn muốn thu hồi tin nhắn này?');
+    // if (!confirm) return;
+
+    const res = await axiosClient.patch(`/unsent-message/${messageId}`);
+    // if (res.status === 200) setMessages(messages.map(message => message.id === messageId ? { ...message, unsent: true } : message));
+    if (res.status === 200)
+      socket.emit("unsend message", { chatRoomId: id.id, messageId });
+    // socket.on('unsend message', (a) => {
+    //   console.log('unsend message', a);
+    //   setMessages(messages.map(message => message.id === a.id ? { ...message, unsent: true } : message));
+    // });
+  };
+  const handleForward = async (messageId) => {
+    setForwarded([]);
+    setMessageId(messageId);
     const res = await axiosClient.get("/info-chat-item/", {
       params: {
         chatRoomId: id.id,
@@ -210,173 +241,269 @@ const handleForward = async (messageId) => {
     setUserInfo(res.data.data);
     // console.log(userInfo);
     setShow(true);
-}
-const handleSendForward = async (index, idChatRoom) => {
-  // console.log('forward message', messageId, idChatRoom);
-  const res = await axiosClient.patch(`/forward-message/${messageId}`, {
-    data: {
-      chatRoomId: idChatRoom,
-    },
-  });
-  // console.log('res', res);
-  if (res.status === 200){
-        const data = {
-            chatRoomId: idChatRoom,
-            senderId: localStorage.getItem('userId'),
-            content: res.data.data.content,
-            type: res.data.data.type,
-            media: res.data.data.media,
-        }
-        socket.emit('message', data, res.data.data._id);
-  }
-  setForwarded([...forwarded, index]);
-};
-useEffect(() => {
-  socket.on('unsend message', (a) => {
-    // console.log('unsend message', a);
-    setMessages(messages.map(message => message.id === a.id ? { ...message, unsent: true } : message));
-  });
-}, [messages]);
+  };
+  const handleSendForward = async (index, idChatRoom) => {
+    // console.log('forward message', messageId, idChatRoom);
+    const res = await axiosClient.patch(`/forward-message/${messageId}`, {
+      data: {
+        chatRoomId: idChatRoom,
+      },
+    });
+    // console.log('res', res);
+    if (res.status === 200) {
+      const data = {
+        chatRoomId: idChatRoom,
+        senderId: localStorage.getItem("userId"),
+        content: res.data.data.content,
+        type: res.data.data.type,
+        media: res.data.data.media,
+      };
+      socket.emit("message", data, res.data.data._id);
+    }
+    setForwarded([...forwarded, index]);
+  };
+  useEffect(() => {
+    socket.on("unsend message", (a) => {
+      // console.log('unsend message', a);
+      setMessages(
+        messages.map((message) =>
+          message.id === a.id ? { ...message, unsent: true } : message
+        )
+      );
+    });
+  }, [messages]);
 
-const handleReaction = async (reaction, messageId) => {
-  const res = await axiosClient.patch(`/react-message/${messageId}`, {
-    data: {
-      reaction,
-    },
-  });
-  // console.log('resasdasd', res.data.data.reactions);
-  if (res.status === 200){
-    socket.emit('react message', { chatRoomId: id.id, messageId, reactions: res.data.data.reactions });
-  }
-};
-useEffect(() => {
-  socket.on('react message', (message) => {
-    // console.log('react message', message);
-    setMessages(messages.map(m => m.id === message.messageId ? { ...m, reactions: message.reactions } : m));
-  });
-}, [messages]);
-const convertReaction = (reaction) => {
-  switch (reaction) {
-    case 'like':
-      return '👍';
-    case 'love':
-      return '❤';
-    case 'haha':
-      return '😆';
-    case 'wow':
-      return '😮';
-    case 'sad':
-      return '😢';
-    case 'angry':
-      return '😠';
-    default:
-      return '';
-  }
-};
+  const handleReaction = async (reaction, messageId) => {
+    const res = await axiosClient.patch(`/react-message/${messageId}`, {
+      data: {
+        reaction,
+      },
+    });
+    // console.log('resasdasd', res.data.data.reactions);
+    if (res.status === 200) {
+      socket.emit("react message", {
+        chatRoomId: id.id,
+        messageId,
+        reactions: res.data.data.reactions,
+      });
+    }
+  };
+  useEffect(() => {
+    socket.on("react message", (message) => {
+      // console.log('react message', message);
+      setMessages(
+        messages.map((m) =>
+          m.id === message.messageId
+            ? { ...m, reactions: message.reactions }
+            : m
+        )
+      );
+    });
+  }, [messages]);
+  const convertReaction = (reaction) => {
+    switch (reaction) {
+      case "like":
+        return "👍";
+      case "love":
+        return "❤";
+      case "haha":
+        return "😆";
+      case "wow":
+        return "😮";
+      case "sad":
+        return "😢";
+      case "angry":
+        return "😠";
+      default:
+        return "";
+    }
+  };
 
-const handleReplyMessage = (messageId, messageContent, messageType) => {
-  if(messageType==='image') messageContent = 'Hình ảnh'
-  else if(messageType==='video') messageContent = 'Video'
-  else if(messageType==='file') messageContent = 'File'
-  else messageContent = messageContent
-  setReplyMessage({messageId, messageContent}); // Cập nhật state
-}
+  const handleReplyMessage = (messageId, messageContent, messageType) => {
+    if (messageType === "image") messageContent = "Hình ảnh";
+    else if (messageType === "video") messageContent = "Video";
+    else if (messageType === "file") messageContent = "File";
+    else messageContent = messageContent;
+    setReplyMessage({ messageId, messageContent }); // Cập nhật state
+  };
 
-// const [scrollToMessageId, setScrollToMessageId] = useState(null);
- // Effect để cuộn đến tin nhắn cụ thể khi scrollToMessageId thay đổi
-//  useEffect(
+  // const [scrollToMessageId, setScrollToMessageId] = useState(null);
+  // Effect để cuộn đến tin nhắn cụ thể khi scrollToMessageId thay đổi
+  //  useEffect(
   const handleScrollToReply = (messageReply) => {
     if (messageReply && listGroupRef.current) {
-      const targetMessageElement = listGroupRef.current.querySelector(`[message="${messageReply}"]`);
+      const targetMessageElement = listGroupRef.current.querySelector(
+        `[message="${messageReply}"]`
+      );
       if (targetMessageElement) {
-        targetMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        targetMessageElement.classList.remove('border-0')
-        targetMessageElement.style.border = '2px solid var(--primary)'
+        targetMessageElement.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+        targetMessageElement.classList.remove("border-0");
+        targetMessageElement.style.border = "2px solid var(--primary)";
 
         // Thiết lập thời gian để tắt viền
         setTimeout(() => {
-          targetMessageElement.classList.add('border-0')
+          targetMessageElement.classList.add("border-0");
         }, 2000); // Sau 2 giây
       }
     }
-  }
-// }, [scrollToMessageId]);
+  };
+  // }, [scrollToMessageId]);
   return (
     <>
       <Container fluid className="message-list-container p-1 h-100">
         <Row className="m-0 position-relative h-100">
-        <div className="position-absolute z-3">
-      {/* Display the first pinned message */}
-      {pinnedMessages.length > 0 && !showDropdown && (
-        console.log("pinnedMessagessss",pinnedMessages),
-        <div className="pin-table">
-          <ul className="list-group">
-            <li key={pinnedMessages[0].id} className="list-group-item d-flex justify-content-between align-items-center">
-              <div onClick={() => handleScrollToReply(pinnedMessages[0].content)}>
-                <p className="mb-1"><strong>From:</strong> {pinnedMessages[0].senderName}</p>
-                <p className="mb-0"><strong>Message:</strong> {pinnedMessages[0].type === "image" ? "image" : pinnedMessages[0].type === "video" ? "vdieo" :pinnedMessages[0].type === "file" ? "file" :pinnedMessages[0].content}</p>
-              </div>
-              <Button className="btn btn-outline-danger" onClick={() => handleUnpin(pinnedMessages[0].id)}>Unpin</Button>
-              {/* Dropdown for additional pinned messages */}
-              <Dropdown drop='down' className="position-absolute" style={{ left: '90%', top: '15px' }}>
-                <Dropdown.Toggle
-                  variant="link"
-                  id="dropdown-settings"
-                  className="px-2"
-                  onClick={() => setShowDropdown(!showDropdown)}
-                >
-                </Dropdown.Toggle>
-                <Dropdown.Menu style={{ minWidth: '100%', maxWidth: 'none' }}>
-                  {pinnedMessages.slice(1).map((message, index) => (
-                    <Dropdown.Item key={message.id}>
-                      <div onClick={() => handleScrollToReply(pinnedMessages[0].content)}>
-                        <p className="mb-1"><strong>From:</strong> {message.senderName}</p>
-                        <p className="mb-0"><strong>Message:</strong> {message.type === "image" ? "image" : message.type === "video" ? "video" : message.type === "file" ? "file" : message.content}</p>
+          <div className="position-absolute z-3">
+            {/* Display the first pinned message */}
+            {pinnedMessages.length > 0 &&
+              !showDropdown &&
+              (console.log("pinnedMessagessss", pinnedMessages),
+              (
+                <div className="pin-table">
+                  <ul className="list-group">
+                    <li
+                      key={pinnedMessages[0].id}
+                      className="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <div
+                        onClick={() =>
+                          handleScrollToReply(pinnedMessages[0].content)
+                        }
+                      >
+                        <p className="mb-1">
+                          <strong>From:</strong> {pinnedMessages[0].senderName}
+                        </p>
+                        <p className="mb-0">
+                          <strong>Message:</strong>{" "}
+                          {pinnedMessages[0].type === "image"
+                            ? "image"
+                            : pinnedMessages[0].type === "video"
+                            ? "vdieo"
+                            : pinnedMessages[0].type === "file"
+                            ? "file"
+                            : pinnedMessages[0].content}
+                        </p>
                       </div>
-                      <Button className="btn btn-outline-danger" onClick={() => handleUnpin(message.id)}>Unpin</Button>
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown.Menu>
-              </Dropdown>
-            </li>
-          </ul>
-        </div>
-      )}
-      {showDropdown && (
-        <div className="pin-table">
-          <ul className="list-group">
-            {pinnedMessages.map((message, index) => (
-              <li key={message.id} className="list-group-item d-flex justify-content-between align-items-center">
-                <div onClick={() => handleScrollToReply(pinnedMessages[0].content)}>
-                  <p className="mb-1"><strong>From:</strong> {message.senderName}</p>
-                  <p className="mb-0"><strong>Message:</strong> {message.type === "image" ? "image" : message.type === "video" ? "video" : message.type === "file" ? "file" : message.content}</p>
+                      <Button
+                        className="btn btn-outline-danger"
+                        onClick={() => handleUnpin(pinnedMessages[0].id)}
+                      >
+                        Unpin
+                      </Button>
+                      {/* Dropdown for additional pinned messages */}
+                      <Dropdown
+                        drop="down"
+                        className="position-absolute"
+                        style={{ left: "90%", top: "15px" }}
+                      >
+                        <Dropdown.Toggle
+                          variant="link"
+                          id="dropdown-settings"
+                          className="px-2"
+                          onClick={() => setShowDropdown(!showDropdown)}
+                        ></Dropdown.Toggle>
+                        <Dropdown.Menu
+                          style={{ minWidth: "100%", maxWidth: "none" }}
+                        >
+                          {pinnedMessages.slice(1).map((message, index) => (
+                            <Dropdown.Item key={message.id}>
+                              <div
+                                onClick={() =>
+                                  handleScrollToReply(pinnedMessages[0].content)
+                                }
+                              >
+                                <p className="mb-1">
+                                  <strong>From:</strong> {message.senderName}
+                                </p>
+                                <p className="mb-0">
+                                  <strong>Message:</strong>{" "}
+                                  {message.type === "image"
+                                    ? "image"
+                                    : message.type === "video"
+                                    ? "video"
+                                    : message.type === "file"
+                                    ? "file"
+                                    : message.content}
+                                </p>
+                              </div>
+                              <Button
+                                className="btn btn-outline-danger"
+                                onClick={() => handleUnpin(message.id)}
+                              >
+                                Unpin
+                              </Button>
+                            </Dropdown.Item>
+                          ))}
+                        </Dropdown.Menu>
+                      </Dropdown>
+                    </li>
+                  </ul>
                 </div>
-                <Button className="btn btn-outline-danger" onClick={() => handleUnpin(message.id)}>Unpin</Button>
-                <Dropdown drop='up' className="position-absolute" style={{ left: '90%', top: '15px' }}>
-                <Dropdown.Toggle
-                  variant="link"
-                  id="dropdown-settings"
-                  className="px-2"
-                  onClick={() => setShowDropdown(false)}
-                >
-                </Dropdown.Toggle>
-
-              </Dropdown>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      </div>
+              ))}
+            {showDropdown && (
+              <div className="pin-table">
+                <ul className="list-group">
+                  {pinnedMessages.map((message, index) => (
+                    <li
+                      key={message.id}
+                      className="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <div
+                        onClick={() =>
+                          handleScrollToReply(pinnedMessages[0].content)
+                        }
+                      >
+                        <p className="mb-1">
+                          <strong>From:</strong> {message.senderName}
+                        </p>
+                        <p className="mb-0">
+                          <strong>Message:</strong>{" "}
+                          {message.type === "image"
+                            ? "image"
+                            : message.type === "video"
+                            ? "video"
+                            : message.type === "file"
+                            ? "file"
+                            : message.content}
+                        </p>
+                      </div>
+                      <Button
+                        className="btn btn-outline-danger"
+                        onClick={() => handleUnpin(message.id)}
+                      >
+                        Unpin
+                      </Button>
+                      <Dropdown
+                        drop="up"
+                        className="position-absolute"
+                        style={{ left: "90%", top: "15px" }}
+                      >
+                        <Dropdown.Toggle
+                          variant="link"
+                          id="dropdown-settings"
+                          className="px-2"
+                          onClick={() => setShowDropdown(false)}
+                        ></Dropdown.Toggle>
+                      </Dropdown>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
           <Col className="p-0 h-100">
-            <StyledListGroup ref={listGroupRef} className="message-container h-100">
+            <StyledListGroup
+              ref={listGroupRef}
+              className="message-container h-100"
+            >
               {messages.length > 0 ? (
                 messages.map((message, index) => (
                   <ListGroup.Item
                     key={index}
                     // message={message.id}
                     message={message.content}
-
                     className={`border-0 p-1 d-flex
                 ${
                   message.sent.toString() ===
@@ -434,51 +561,29 @@ const handleReplyMessage = (messageId, messageContent, messageType) => {
                             // message.media && <Image src={message.media.url} style={{ width: '100px', height: '100px' }} />
                             <div>
                               {/* Component nhảy tới tin nhắn được reply  */}
-                              {message.reply?.length > 0 &&
-                              <Button variant="outline-secondary" onClick={() =>
-                              // setScrollToMessageId(message.reply)
-                              handleScrollToReply(message.reply)
-                              }>{message.reply}</Button>}
-
-                            <div
-                            style={{
-                              wordWrap: "break-word",
-                              whiteSpace: "pre-line",
-                            }}
-                            >
-                              {message.isForwarded && (
-                                <div className="text-muted">Forwarded</div>
-                              )}
-                              {message.type === "image" && (
-                                <Image
-                                  src={message.media.url}
-                                  style={{
-                                    width: "300px",
-                                    height: "auto",
-                                    borderRadius: "5px",
-                                    display: "block",
-                                  }}
-                                />
-                              )}
-                              {message.type === "video" && (
-                                <video
-                                  src={message.media.url}
-                                  style={{
-                                    width: "300px",
-                                    height: "auto",
-                                    borderRadius: "5px",
-                                    display: "block",
-                                  }}
-                                  controls
-                                />
-                              )}
-                              {message.type === "file" && (
-                                <a
-                                  href={message.media.url}
-                                  target="_blank"
-                                  rel="noreferrer"
+                              {message.reply?.length > 0 && (
+                                <Button
+                                  variant="outline-secondary"
+                                  onClick={() =>
+                                    // setScrollToMessageId(message.reply)
+                                    handleScrollToReply(message.reply)
+                                  }
                                 >
-                                  <embed
+                                  {message.reply}
+                                </Button>
+                              )}
+
+                              <div
+                                style={{
+                                  wordWrap: "break-word",
+                                  whiteSpace: "pre-line",
+                                }}
+                              >
+                                {message.isForwarded && (
+                                  <div className="text-muted">Forwarded</div>
+                                )}
+                                {message.type === "image" && (
+                                  <Image
                                     src={message.media.url}
                                     style={{
                                       width: "300px",
@@ -487,19 +592,47 @@ const handleReplyMessage = (messageId, messageContent, messageType) => {
                                       display: "block",
                                     }}
                                   />
-                                  <div>{message.media.name}</div>
-                                </a>
-                              )}
+                                )}
+                                {message.type === "video" && (
+                                  <video
+                                    src={message.media.url}
+                                    style={{
+                                      width: "300px",
+                                      height: "auto",
+                                      borderRadius: "5px",
+                                      display: "block",
+                                    }}
+                                    controls
+                                  />
+                                )}
+                                {message.type === "file" && (
+                                  <a
+                                    href={message.media.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    <embed
+                                      src={message.media.url}
+                                      style={{
+                                        width: "300px",
+                                        height: "auto",
+                                        borderRadius: "5px",
+                                        display: "block",
+                                      }}
+                                    />
+                                    <div>{message.media.name}</div>
+                                  </a>
+                                )}
 
-                              {message.content.length > 60
-                                ? message.content.length > 30
-                                  ? message.content
-                                      .substring(0, 60)
-                                      .match(/.{1,30}/g)
-                                      .join("\n") + "..."
-                                  : message.content
-                                : message.content}
-                            </div>
+                                {message.content.length > 60
+                                  ? message.content.length > 30
+                                    ? message.content
+                                        .substring(0, 60)
+                                        .match(/.{1,30}/g)
+                                        .join("\n") + "..."
+                                    : message.content
+                                  : message.content}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -559,13 +692,13 @@ const handleReplyMessage = (messageId, messageContent, messageType) => {
                             <>
                               {/* Reply Button  */}
                               <Dropdown
-                                  className="position-absolute"
-                                  style={
-                                    message.sent.toString() ===
-                                    JSON.parse(localStorage.getItem("userId"))
-                                      ? { left: "-90px", top: "20%" }
-                                      : { right: "-90px", top: "20%" }
-                                  }
+                                className="position-absolute"
+                                style={
+                                  message.sent.toString() ===
+                                  JSON.parse(localStorage.getItem("userId"))
+                                    ? { left: "-90px", top: "20%" }
+                                    : { right: "-90px", top: "20%" }
+                                }
                               >
                                 <Dropdown.Toggle
                                   variant="link"
@@ -573,8 +706,15 @@ const handleReplyMessage = (messageId, messageContent, messageType) => {
                                   className="px-2"
                                   bsPrefix="dropdown-toggle-custom"
                                 >
-                                  <FontAwesomeIcon icon={faReply}
-                                    onClick={() => handleReplyMessage(message.id, message.content, message.type)}
+                                  <FontAwesomeIcon
+                                    icon={faReply}
+                                    onClick={() =>
+                                      handleReplyMessage(
+                                        message.id,
+                                        message.content,
+                                        message.type
+                                      )
+                                    }
                                   />
                                 </Dropdown.Toggle>
                               </Dropdown>
@@ -600,7 +740,6 @@ const handleReplyMessage = (messageId, messageContent, messageType) => {
                                       localStorage.getItem("userId")
                                     ) && (
                                     <>
-                                     
                                       <Dropdown.Item
                                         onClick={() => handleUnsend(message.id)}
                                       >
@@ -608,11 +747,11 @@ const handleReplyMessage = (messageId, messageContent, messageType) => {
                                       </Dropdown.Item>
                                     </>
                                   )}
-                                   <Dropdown.Item
-                                      onClick={() => handlePinMessage(message.id)}
-                                      >
-                                        <span>Ghim</span>
-                                      </Dropdown.Item>
+                                  <Dropdown.Item
+                                    onClick={() => handlePinMessage(message.id)}
+                                  >
+                                    <span>Ghim</span>
+                                  </Dropdown.Item>
                                   <Dropdown.Item
                                     onClick={() => handleDelete(message.id)}
                                   >
@@ -730,8 +869,13 @@ const handleReplyMessage = (messageId, messageContent, messageType) => {
 
               <div className="px-1 d-flex flex-row-reverse">
                 <Image
-                  src="https://i.imgur.com/rsJjBcH.png"
-                  style={{ width: "20px", height: "20px" }}
+                  src={
+                    currentUserAvatar ||
+                    "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
+                  }
+                  style={{ width: "20px", height: "20px", borderRadius: "50%" }}
+                  alt="Đã xem"
+                  title="Bạn đã xem"
                 />
               </div>
             </StyledListGroup>
@@ -787,7 +931,7 @@ const handleReplyMessage = (messageId, messageContent, messageType) => {
                 </Card>
               </Col>
             </Row>
-          </Container>  
+          </Container>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose}>
