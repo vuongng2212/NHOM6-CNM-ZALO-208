@@ -1,152 +1,313 @@
 import React, { useEffect, useState } from "react";
-import { Container, Form, Button } from "react-bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
+import { Form, Button, Card, Alert } from "react-bootstrap";
 import styled from "styled-components";
 import route from "../configs/route";
-import axiosClient from "../api/axiosClient";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
 import OtpInput from "react-otp-input";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { FaPaperPlane, FaArrowRight } from "react-icons/fa";
 
-const ContainerStyled = styled(Container)`
+const OtpCard = styled(Card)`
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  width: 100%;
+  max-width: 500px;
+  background: #fff;
+  border: none;
+  margin: 0 auto;
+`;
+
+const CardBodyStyled = styled(Card.Body)`
+  padding: 40px 32px;
+`;
+
+const Title = styled.h2`
+  color: #0068ff;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 8px;
+  font-size: 28px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.5px;
+`;
+
+const Subtitle = styled.p`
+  color: #7589a3;
+  text-align: center;
+  margin-bottom: 32px;
+  font-size: 14px;
+  line-height: 1.5;
+`;
+
+const OtpWrapper = styled.div`
+  margin: 24px 0;
   display: flex;
   justify-content: center;
 `;
 
-const FormGroupStyled = styled(Form.Group)`
-  margin-bottom: 2rem;
+const CustomOtpInput = styled(OtpInput)`
+  gap: 10px;
+  justify-content: center;
+`;
+
+const ResendText = styled.p`
   text-align: center;
+  font-size: 14px;
+  color: #7589a3;
+  margin-bottom: 8px;
+`;
+
+const ResendLink = styled(Button)`
+  background: none;
+  border: none;
+  color: #0068ff;
+  font-weight: 500;
+  padding: 0;
+  font-size: 14px;
+
+  &:hover,
+  &:focus {
+    background: none;
+    color: #0051cc;
+    text-decoration: underline;
+  }
+`;
+
+const ButtonsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 24px;
+`;
+
+const StyledButton = styled(Button)`
+  border-radius: 24px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 15px;
+  background-color: #0068ff;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+
+  &:hover,
+  &:focus {
+    background-color: #0051cc;
+  }
+
+  &:active {
+    background-color: #004299;
+  }
+`;
+
+const ResendContainer = styled.div`
+  text-align: center;
+  margin: 16px 0 24px 0;
 `;
 
 const ResetPasswordConfirm = () => {
- const [otp, setOtp] = useState("");
- const navigate = useNavigate();
+  const [otp, setOtp] = useState("");
+  const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
- const handleSubmit = async (e) => {
-   e.preventDefault();
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
-   // Lấy email từ sessionStorage
-   const email = sessionStorage.getItem("email");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-   // Kiểm tra xem email có tồn tại không
-   if (!email) {
-     alert("Không tìm thấy email. Vui lòng thử lại.");
-     return;
-   }
+    const email = sessionStorage.getItem("email");
 
-   // Kiểm tra xem OTP có hợp lệ không
-   if (otp.length !== 6) {
-     alert("OTP không hợp lệ");
-     return;
-   }
+    if (!email) {
+      toast.error("Không tìm thấy email. Vui lòng thử lại.");
+      setIsLoading(false);
+      return;
+    }
 
-   // Gửi yêu cầu tới máy chủ
-   try {
-     const response = await axios.post(
-      process.env.REACT_APP_API_URL + "/api/users/verify",
-       {
-         email,
-         otp,
-       }
-     );
+    if (otp.length !== 6) {
+      toast.error("Vui lòng nhập đủ 6 số của mã xác thực");
+      setIsLoading(false);
+      return;
+    }
 
-     // Kiểm tra xem email có tồn tại trong phản hồi từ máy chủ không
-     if (response.data.hasOwnProperty("email")) {
-       console.log("Email exists in the response:", response.data.email);
-     } else {
-       console.log("Email does not exist in the response");
-     }
+    try {
+      const response = await axios.post(
+        process.env.REACT_APP_API_URL + "/api/users/verify",
+        { email, otp }
+      );
 
-     alert("OTP đã được xác minh thành công");
-     navigate(route.register); // Chuyển hướng đến trang đăng kí
-   } catch (error) {
-     console.error("Error:", error);
+      toast.success("Xác thực OTP thành công! Đang chuyển hướng...", {
+        position: "top-right",
+        autoClose: 3000,
+      });
 
-     // Xử lý lỗi cụ thể từ máy chủ
-     if (error.response && error.response.status === 400) {
-       alert("Có lỗi xảy ra, dữ liệu gửi đi không hợp lệ");
-     } else {
-       alert("Có lỗi xảy ra, vui lòng thử lại sau");
-     }
-   }
- };
+      setTimeout(() => {
+        navigate(route.register);
+      }, 3000);
+    } catch (error) {
+      console.error("Error:", error);
 
- const handleResend = async () => {
-   // Lấy email từ sessionStorage
-   const email = sessionStorage.getItem("email");
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        setErrorMessage(error.response.data.message);
+        toast.error(error.response.data.message);
+      } else if (error.response && error.response.status === 400) {
+        const message = "OTP không chính xác hoặc đã hết hạn";
+        setErrorMessage(message);
+        toast.error(message);
+      } else {
+        const message = "Có lỗi xảy ra, vui lòng thử lại sau";
+        setErrorMessage(message);
+        toast.error(message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-   // Kiểm tra xem email có tồn tại không
-   if (!email) {
-     alert("Không tìm thấy email. Vui lòng thử lại.");
-     return;
-   }
+  const handleResend = async () => {
+    if (countdown > 0) return;
 
-   // Gửi yêu cầu tới máy chủ
-   try {
-     const response = await axios.post(
-      process.env.REACT_APP_API_URL + "/api/users/send-otp",
-       {
-         email,
-       }
-     );
+    setResendLoading(true);
+    const email = sessionStorage.getItem("email");
 
-     if (response.data.success) {
-       alert("Mã OTP đã được gửi lại thành công");
-     } else {
-       alert("Có lỗi xảy ra, vui lòng thử lại sau");
-     }
-   } catch (error) {
-     console.error("Error:", error);
-     alert("Có lỗi xảy ra, vui lòng thử lại sau");
-   }
- };
+    if (!email) {
+      toast.error("Không tìm thấy email. Vui lòng thử lại.");
+      setResendLoading(false);
+      return;
+    }
 
+    try {
+      const response = await axios.post(
+        process.env.REACT_APP_API_URL + "/api/users/send-otp",
+        { email }
+      );
+
+      if (response.data.success !== false) {
+        toast.success("Mã OTP mới đã được gửi đến email của bạn", {
+          position: "top-right",
+        });
+        setCountdown(60); // 60 giây đếm ngược
+      } else {
+        toast.error(
+          response.data.message || "Có lỗi xảy ra, vui lòng thử lại sau"
+        );
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Có lỗi xảy ra, vui lòng thử lại sau");
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   return (
-    <ContainerStyled fluid="md">
-      <Form onSubmit={handleSubmit}>
-        {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
-        <FormGroupStyled>
-          <h3>Nhập mã xác nhận</h3>
-          <Form.Text>
-            Mã xác thực sẽ được gửi qua email hoặc số điện thoại
-          </Form.Text>
-        </FormGroupStyled>
+    <>
+      <OtpCard>
+        <CardBodyStyled>
+          <Title>Xác nhận mã OTP</Title>
+          <Subtitle>
+            Vui lòng nhập mã xác thực 6 chữ số
+            <br />
+            đã được gửi đến email của bạn
+          </Subtitle>
 
-        <FormGroupStyled>
-          <OtpInput
-            value={otp}
-            onChange={setOtp}
-            numInputs={6}
-            inputStyle={{
-              height: "3rem",
-              margin: " 0 1rem",
-              fontSize: "3rem",
-              borderRadius: "4px",
-              border: " unset",
-              borderBottom: "1px solid rgba(0,0,0,1)",
-            }}
-            renderSeparator={<span>-</span>}
-            renderInput={(props) => <input {...props} />}
-          />
-        </FormGroupStyled>
+          {errorMessage && (
+            <Alert
+              variant="danger"
+              className="mb-4"
+              style={{
+                borderRadius: "12px",
+                fontSize: "14px",
+                backgroundColor: "#fff2f0",
+                borderColor: "#ffccc7",
+                color: "#ff4d4f",
+              }}
+            >
+              {errorMessage}
+            </Alert>
+          )}
 
-        <FormGroupStyled>
-          <p>Bạn chưa nhận được?</p>
-          <Button variant="link" onClick={handleResend}>
-            Gửi lại
-          </Button>
-        </FormGroupStyled>
+          <Form onSubmit={handleSubmit}>
+            <OtpWrapper>
+              <CustomOtpInput
+                value={otp}
+                onChange={setOtp}
+                numInputs={6}
+                inputStyle={{
+                  width: "48px",
+                  height: "48px",
+                  fontSize: "1.5rem",
+                  borderRadius: "8px",
+                  border: "1px solid #dfe1e6",
+                  backgroundColor: "#f1f3f5",
+                  margin: "0 4px",
+                  textAlign: "center",
+                  fontWeight: "600",
+                  color: "#0068ff",
+                  outline: "none",
+                }}
+                inputType="number"
+                renderSeparator={""}
+                renderInput={(props) => <input {...props} />}
+                shouldAutoFocus={true}
+              />
+            </OtpWrapper>
 
-        <FormGroupStyled>
-          <Button variant="primary" type="submit">
-            Tiếp theo
-          </Button>
-        </FormGroupStyled>
-      </Form>
-    </ContainerStyled>
+            <ResendContainer>
+              <ResendText>Chưa nhận được mã?</ResendText>
+              {countdown > 0 ? (
+                <span style={{ fontSize: "14px", color: "#7589a3" }}>
+                  Gửi lại sau {countdown}s
+                </span>
+              ) : (
+                <ResendLink onClick={handleResend} disabled={resendLoading}>
+                  {resendLoading ? "Đang gửi..." : "Gửi lại mã xác nhận"}
+                </ResendLink>
+              )}
+            </ResendContainer>
+
+            <ButtonsContainer>
+              <StyledButton type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm"
+                      role="status"
+                      aria-hidden="true"
+                    ></span>
+                    <span className="ms-2">Đang xác thực...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Tiếp tục</span>
+                    <FaArrowRight />
+                  </>
+                )}
+              </StyledButton>
+            </ButtonsContainer>
+          </Form>
+        </CardBodyStyled>
+      </OtpCard>
+      <ToastContainer />
+    </>
   );
 };
 
