@@ -260,7 +260,7 @@ const SideBar = () => {
             src={
               userInfo.avatar
                 ? userInfo.avatar
-                : "https://i.imgur.com/rsJjBcH.png"
+                : "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
             }
             roundedCircle
           />
@@ -296,22 +296,11 @@ const SideBar = () => {
         </Modal.Header>
         <Modal.Body>
           <Container fluid>
-            {/* <Thumb>
-                    <ImageSidebarStyled2 src="https://i.imgur.com/rsJjBcH.png" rounded></ImageSidebarStyled2>
-                    <Icon src={icons.camera} rounded></Icon>
-                    </Thumb> */}
-            <Row className="justify-content-center align-items-center h-100 w-100 d-flex">
-              <Col lg="6" className="mb-4 mb-lg-0 w-100">
-                <Card className="mb-3" style={{ borderRadius: ".5rem" }}>
+            <Row className="justify-content-center align-items-center w-100">
+              <Col md="12">
+                <Card className="border-0">
                   <Row className="g-0">
-                    <Col
-                      md="4"
-                      className="gradient-custom text-center px-2"
-                      style={{
-                        borderTopLeftRadius: ".5rem",
-                        borderBottomLeftRadius: ".5rem",
-                      }}
-                    >
+                    <Col md="12" className="text-center mb-4">
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -327,12 +316,18 @@ const SideBar = () => {
                             : "https://i.imgur.com/rsJjBcH.png"
                         }
                         alt="Avatar"
-                        className="my-4"
-                        style={{ width: "80px", cursor: "pointer" }}
-                        fluid
+                        className="mb-3"
+                        style={{
+                          width: "100px",
+                          height: "100px",
+                          cursor: "pointer",
+                          objectFit: "cover",
+                          borderRadius: "50%",
+                        }}
                         onClick={triggerFileSelectPopup}
                       />
-                      <div className="d-flex flex-column justify-content-between  align-items-center">
+
+                      <div className="d-flex flex-column align-items-center">
                         {isEditing ? (
                           <Form.Control
                             type="text"
@@ -340,248 +335,123 @@ const SideBar = () => {
                             value={userInfoUpdate.name}
                             name="name"
                             onChange={handleChange}
+                            className="mb-2 text-center"
+                            style={{ maxWidth: "200px" }}
                           />
                         ) : (
-                          <h5>{userInfoUpdate.name}</h5>
-                        )}
-                        {isEditing ? (
-                          <>
-                            <Button
-                              style={{
-                                backgroundColor: "",
-                                opacity: "1",
-                                transition: "all 0.3s ease",
-                                ":hover": {
-                                  backgroundColor: "#9E9E9E",
-                                  opacity: "1",
-                                },
-                              }}
-                              className="d-flex justify-content-evenly w-75 align-items-center m-2"
-                              onClick={handleDoneClick}
-                            >
-                              {/* <ImageSidebarStyledEdit src={icons.edit_user}></ImageSidebarStyledEdit> */}
-                              <span className="text-white">Done</span>
-                            </Button>
-                            <Button
-                              variant="danger"
-                              style={{
-                                opacity: "1",
-                                transition: "all 0.3s ease",
-                                ":hover": {
-                                  backgroundColor: "#9E9E9E",
-                                  opacity: "1",
-                                },
-                              }}
-                              className="d-flex justify-content-evenly w-75 align-items-center m-2"
-                              onClick={handleCancleClick}
-                            >
-                              {/* <ImageSidebarStyledEdit src={icons.edit_user}></ImageSidebarStyledEdit> */}
-                              <span className="text-white">Cancel</span>
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              style={{
-                                backgroundColor: "",
-                                opacity: "0.5",
-                                transition: "all 0.3s ease",
-                                ":hover": {
-                                  backgroundColor: "#9E9E9E",
-                                  opacity: "1",
-                                },
-                              }}
-                              className="d-flex justify-content-evenly w-75 align-items-center m-2"
-                              onClick={handleUpdateClick}
-                            >
-                              {/* <ImageSidebarStyledEdit src={icons.edit_user}></ImageSidebarStyledEdit> */}
-                              <span className="text-white">Update</span>
-                            </Button>
-                            <Button
-                              variant=""
-                              style={{
-                                backgroundColor: "",
-                                opacity: "1",
-                                transition: "all 0.3s ease",
-                                ":hover": {
-                                  backgroundColor: "#9E9E9E",
-                                  opacity: "1",
-                                },
-                              }}
-                              className="d-flex justify-content-evenly w-75 align-items-center m-2"
-                              onClick={handleLogoutClick}
-                            >
-                              {/* <ImageSidebarStyledEdit src={icons.edit_user}></ImageSidebarStyledEdit> */}
-                              <span className="text-black">Logout</span>
-                            </Button>
-                            <Button
-                              variant="danger"
-                              style={{
-                                opacity: "1",
-                                transition: "all 0.3s ease",
-                                ":hover": {
-                                  backgroundColor: "#9E9E9E",
-                                  opacity: "1",
-                                },
-                              }}
-                              className="d-flex justify-content-evenly w-75 align-items-center m-2"
-                              onClick={handleShowModal}
-                            >
-                              {/* <ImageSidebarStyledEdit src={icons.edit_user}></ImageSidebarStyledEdit> */}
-                              <span className="text-white">
-                                Change Password
-                              </span>
-                            </Button>
-                          </>
+                          <h5 className="fw-bold mb-2">
+                            {userInfoUpdate.name}
+                          </h5>
                         )}
                       </div>
-                    </Col>
-                    {/* <Col md="8">
-                      <Card.Body
-                        className="p-4"
-                        style={{ backgroundColor: "#f8bbd0" }}
-                      >
-                        <h6 style={{ color: "#1976d2", fontWeight: "bold" }}>
-                          Thông tin cá nhân
-                        </h6>
-                        <hr className="mt-0 mb-4" />
-                        <Row className="pt-1">
-                          <Col sm="12" className="mb-3">
-                            <h6 style={{ color: "#555" }}>Email</h6>
-                            <p className="text-muted">{userInfo.email}</p>
-                          </Col>
-                          <Col sm="6" className="mb-3">
-                            <h6 style={{ color: "#555" }}>Số điện thoại</h6>
-                            {isEditing ? (
-                              <Form.Control
-                                type="text"
-                                value={userInfoUpdate.phone}
-                                style={{ width: "auto" }}
-                                name="phone"
-                                onChange={handleChange}
-                              />
-                            ) : (
-                              <p className="text-muted">
-                                {userInfoUpdate.phone}
-                              </p>
-                            )}
-                          </Col>
-                        </Row>
 
-                        <hr className="mt-0 mb-4" />
-                        <Row className="pt-1">
-                          <Col sm="8" className="mb-3">
-                            <h6 style={{ color: "#555" }}>Ngày sinh</h6>
-                            {isEditing ? (
-                              <Form.Control
-                                type="date"
-                                value={userInfoUpdate.dob
-                                  .split("-")
-                                  .reverse()
-                                  .join("-")}
-                                style={{ width: "auto" }}
-                                name="dob"
-                                onChange={handleChange}
-                              />
-                            ) : (
-                              <p className="text-muted">{userInfoUpdate.dob}</p>
-                            )}
-                          </Col>
-                          <Col sm="4" className="mb-3">
-                            <h6 style={{ color: "#555" }}>Giới tính</h6>
-                            <p className="text-muted">{userInfo.gender}</p>
-                          </Col>
-                        </Row>
-
-                        <div className="d-flex justify-content-start">
-                          <a href="#!">
-                            <i className="fab fa-facebook me-3"></i>
-                          </a>
-                          <a href="#!">
-                            <i className="fab fa-twitter me-3"></i>
-                          </a>
-                          <a href="#!">
-                            <i className="fab fa-instagram me-3"></i>
-                          </a>
+                      {isEditing ? (
+                        <div className="d-flex justify-content-center mt-3 mb-3">
+                          <Button
+                            variant="primary"
+                            className="me-2"
+                            onClick={handleDoneClick}
+                            style={{ borderRadius: "20px", width: "100px" }}
+                          >
+                            Done
+                          </Button>
+                          <Button
+                            variant="outline-secondary"
+                            onClick={handleCancleClick}
+                            style={{ borderRadius: "20px", width: "100px" }}
+                          >
+                            Cancel
+                          </Button>
                         </div>
-                      </Card.Body>
-                    </Col>   */}
-
-                    <Col md="8">
-                      <Card.Body className="p-4">
-                        <h6>Information</h6>
-                        <hr className="mt-0 mb-4" />
-                        <Row className="pt-1">
-                          <Col sm="12" className="mb-3">
-                            <h6>Email</h6>
-                            <p className="text-muted">{userInfo.email}</p>
-                          </Col>
-                          <Col sm="6" className="mb-3">
-                            <h6>Phone</h6>
-                            {isEditing ? (
-                              <Form.Control
-                                type="text"
-                                value={userInfoUpdate.phone}
-                                style={{ width: "auto" }}
-                                name="phone"
-                                onChange={handleChange}
-                              />
-                            ) : (
-                              <p className="text-muted">
-                                {userInfoUpdate.phone}
-                              </p>
-                            )}
-                          </Col>
-                        </Row>
-                        <hr className="mt-0 mb-4" />
-                        <Row className="pt-1">
-                          <Col sm="8" className="mb-3">
-                            <h6>Dob</h6>
-                            {isEditing ? (
-                              <Form.Control
-                                type="date"
-                                value={userInfoUpdate.dob
-                                  .split("-")
-                                  .reverse()
-                                  .join("-")}
-                                style={{ width: "auto" }}
-                                name="dob"
-                                onChange={handleChange}
-                              />
-                            ) : (
-                              <p className="text-muted">{userInfoUpdate.dob}</p>
-                            )}
-                          </Col>
-                          <Col sm="4" className="mb-3">
-                            <h6>Gender</h6>
-                            <p className="text-muted">{userInfo.gender}</p>
-                          </Col>
-                        </Row>
-
-                        <div className="d-flex justify-content-start">
-                          <a href="#!">
-                            <i className="fab fa-facebook me-3"></i>
-                          </a>
-                          <a href="#!">
-                            <i className="fab fa-twitter me-3"></i>
-                          </a>
-                          <a href="#!">
-                            <i className="fab fa-instagram me-3"></i>
-                          </a>
-                        </div>
-                      </Card.Body>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          onClick={handleUpdateClick}
+                          className="mb-3"
+                          style={{ borderRadius: "20px", width: "100px" }}
+                        >
+                          Update
+                        </Button>
+                      )}
                     </Col>
                   </Row>
+
+                  <div style={{ marginBottom: "20px" }}>
+                    <h6 className="fw-bold ps-2 border-bottom pb-2">
+                      Information
+                    </h6>
+
+                    <div className="mt-3 ps-2">
+                      <h6 className="mb-1 text-muted">Email</h6>
+                      <p>{userInfo.email}</p>
+                    </div>
+
+                    <div className="mt-3 ps-2">
+                      <h6 className="mb-1 text-muted">Phone</h6>
+                      {isEditing ? (
+                        <Form.Control
+                          type="text"
+                          value={userInfoUpdate.phone}
+                          name="phone"
+                          onChange={handleChange}
+                          style={{ maxWidth: "200px" }}
+                        />
+                      ) : (
+                        <p>{userInfoUpdate.phone}</p>
+                      )}
+                    </div>
+
+                    <div className="d-flex ps-2">
+                      <div className="me-4 flex-grow-1">
+                        <h6 className="mb-1 text-muted">Dob</h6>
+                        {isEditing ? (
+                          <Form.Control
+                            type="date"
+                            value={userInfoUpdate.dob
+                              .split("-")
+                              .reverse()
+                              .join("-")}
+                            name="dob"
+                            onChange={handleChange}
+                          />
+                        ) : (
+                          <p>{userInfoUpdate.dob}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <h6 className="mb-1 text-muted">Gender</h6>
+                        <p>{userInfo.gender}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="d-flex mt-3 justify-content-center">
+                    {!isEditing && (
+                      <>
+                        <Button
+                          variant="danger"
+                          className="me-2"
+                          onClick={handleShowModal}
+                          style={{ borderRadius: "20px" }}
+                        >
+                          Change Password
+                        </Button>
+                        <Button
+                          variant="outline-secondary"
+                          onClick={handleLogoutClick}
+                          style={{ borderRadius: "20px" }}
+                        >
+                          Logout
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </Card>
               </Col>
             </Row>
           </Container>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
-            Close
-          </Button>
-        </Modal.Footer>
       </Modal>
       {/* Modal Change Password                 */}
       <Modal show={showModal} onHide={handleCloseModal}>
