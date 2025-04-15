@@ -47,17 +47,17 @@ const registerUser = async (req, res) => {
     if (!password || !displayName || !dateOfBirth)
       return res
         .status(400)
-        .json({ success: false, message: "Không để trống các trường" });
+        .json({ success: false, message: "Không được để trống các field" });
     // Kiểm tra định dạng của email
     if (!validator.isEmail(email))
       return res
         .status(400)
-        .json({ success: false, message: "Email phải là email hợp lệ..." });
+        .json({ success: false, message: "Email không hợp lệ!" });
     // Kiểm tra mật khẩu có đủ mạnh không
     if (!validator.isStrongPassword(password))
       return res
         .status(400)
-        .json({ success: false, message: "Mật khẩu phải mạnh..." });
+        .json({ success: false, message: "Mật khẩu chưa phù hợp" });
     // Kiểm tra ngày sinh nhật có đủ 15 tuổi không
     const birthDate = new Date(dateOfBirth);
     const currentDate = new Date();
@@ -71,7 +71,7 @@ const registerUser = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Bạn phải ít nhất 15 tuổi mới được đăng ký...",
+        message: "Bạn phải ít nhất 15 tuổi để đăng ký",
       });
     }
     // Tạo một user mới và lưu vào cơ sở dữ liệu
@@ -80,6 +80,8 @@ const registerUser = async (req, res) => {
       email,
       displayName,
       dateOfBirth,
+      photoURL:
+        "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg",
     });
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
@@ -92,6 +94,7 @@ const registerUser = async (req, res) => {
       email,
       displayName,
       dateOfBirth,
+      photoURL: user.photoURL,
       token,
     });
   } catch (error) {
