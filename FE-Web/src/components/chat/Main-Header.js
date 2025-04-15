@@ -1,21 +1,28 @@
-import React, {useState, useEffect} from "react";
-import { ListGroup, Image, Row, Col, Container, Card, Form} from 'react-bootstrap';
-import Stack from 'react-bootstrap/Stack';
+import React, { useState, useEffect } from "react";
+import {
+  ListGroup,
+  Image,
+  Row,
+  Col,
+  Container,
+  Card,
+  Form,
+} from "react-bootstrap";
+import Stack from "react-bootstrap/Stack";
 import { icons } from "../../assets";
 import styled from "styled-components";
 import axiosClient from "../../api/axiosClient";
 import { useNavigate } from "react-router-dom";
 
-
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
 
 // id: props
 const Header = (id) => {
   const [user, setUser] = useState({});
   const [meetingId, setMeetingId] = useState();
   const [isFriend, setIsFriend] = useState(true); // Giả sử ban đầu là bạn bè
-  const [sentRequest, setSentRequest] = useState(false); // Giả sử ban đầu là chưa gửi yêu 
+  const [sentRequest, setSentRequest] = useState(false); // Giả sử ban đầu là chưa gửi yêu
   const [receivedRequest, setReceivedRequest] = useState(false); // Giả sử ban đầu là chưa nhận yêu cầu
   const [isMember, setIsMember] = useState(false);
 
@@ -26,12 +33,29 @@ const Header = (id) => {
       const data = res.data.data;
       console.log("data group: ", data);
       if (data.members) {
-        setIsMember(data.members.includes(JSON.parse(localStorage.getItem("userId"))));
-      }else{
-        setIsFriend(data.friends?.includes(JSON.parse(localStorage.getItem("userId"))));
-        setSentRequest(data.friendsRequest?.includes(JSON.parse(localStorage.getItem("userId"))));
-        setReceivedRequest(data.requestsSent?.includes(JSON.parse(localStorage.getItem("userId"))));
-        console.log("data user: ", data.requestsSent?.includes(JSON.parse(localStorage.getItem("userId"))));
+        setIsMember(
+          data.members.includes(JSON.parse(localStorage.getItem("userId")))
+        );
+      } else {
+        setIsFriend(
+          data.friends?.includes(JSON.parse(localStorage.getItem("userId")))
+        );
+        setSentRequest(
+          data.friendsRequest?.includes(
+            JSON.parse(localStorage.getItem("userId"))
+          )
+        );
+        setReceivedRequest(
+          data.requestsSent?.includes(
+            JSON.parse(localStorage.getItem("userId"))
+          )
+        );
+        console.log(
+          "data user: ",
+          data.requestsSent?.includes(
+            JSON.parse(localStorage.getItem("userId"))
+          )
+        );
       }
       setUser(data);
     });
@@ -107,7 +131,7 @@ const Header = (id) => {
     await axiosClient.post("/grant-permission", {
       userId: id,
       groupId: groupId,
-      role: 'admin'
+      role: "admin",
     });
     // console.log(res);
     //reload page:
@@ -118,7 +142,7 @@ const Header = (id) => {
     await axiosClient.post("/grant-permission", {
       userId: id,
       groupId: groupId,
-      role: 'member'
+      role: "member",
     });
     // console.log(res);
     //reload page:
@@ -154,27 +178,26 @@ const Header = (id) => {
     navigate("/chat");
     window.location.reload();
   };
-const handleUnfriend = async (friendId) => {
-  const res = await axiosClient.post("/unfriend", { friendId });
-  // console.log(res);
-  setIsFriend(false); // Đặt trạng thái là false khi bạn bè bị hủy
-  //window.location.reload();
-  // console.log(res);
-  console.log("unfriend");
-};
+  const handleUnfriend = async (friendId) => {
+    const res = await axiosClient.post("/unfriend", { friendId });
+    // console.log(res);
+    setIsFriend(false); // Đặt trạng thái là false khi bạn bè bị hủy
+    //window.location.reload();
+    // console.log(res);
+    console.log("unfriend");
+  };
 
-const handleAddFriend = async () => {
-  console.log(userInfo);
-  const res = await axiosClient.post("/add-friend", {
-    userInfo: {
-      _id: user._id,
-    }
-   });
-  console.log(res);
-  console.log("add friend");
-  setSentRequest(true);
-};
-
+  const handleAddFriend = async () => {
+    console.log(userInfo);
+    const res = await axiosClient.post("/add-friend", {
+      userInfo: {
+        _id: user._id,
+      },
+    });
+    console.log(res);
+    console.log("add friend");
+    setSentRequest(true);
+  };
 
   return (
     <>
@@ -188,7 +211,10 @@ const handleAddFriend = async () => {
             >
               <DivImage>
                 <ImageSidebarStyled
-                  src={user.photoURL}
+                  src={
+                    user.photoURL ||
+                    "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
+                  }
                   roundedCircle
                   onClick={
                     !user.ownerId
@@ -255,45 +281,48 @@ const handleAddFriend = async () => {
       </div>
 
       {!isFriend && !user.members && (
-      <div className="position-relative w-100">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            padding: "8px",
-            border: "1px solid #ddd",
-            borderRadius: "8px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-            marginTop: "1px",
-            marginLeft: "8px",
-            position: "absolute",
-            width: "calc(100% - 16px)",
-            backgroundColor: "#fff",
-            zIndex: 1,
-          }}
-        >
-          <Image
-            src={icons.addFriend}
-            style={{ width: "25px", height: "25px", marginRight: "12px" }}
-          />
-          <p style={{ margin: 0, fontSize: "16px", color: "#333" }}>
-            Gửi lời mời kết bạn
-          </p>
-          <Button
-            variant="primary"
-            onClick={handleAddFriend}
+        <div className="position-relative w-100">
+          <div
             style={{
-              marginLeft: "auto",
-              padding: "6px 12px",
-              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              padding: "8px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              marginTop: "1px",
+              marginLeft: "8px",
+              position: "absolute",
+              width: "calc(100% - 16px)",
+              backgroundColor: "#fff",
+              zIndex: 1,
             }}
-            disabled={sentRequest}
           >
-            {sentRequest ? "Đã gửi": receivedRequest? "Đồng ý kết bạn" : "Kết bạn"}
-          </Button>
+            <Image
+              src={icons.addFriend}
+              style={{ width: "25px", height: "25px", marginRight: "12px" }}
+            />
+            <p style={{ margin: 0, fontSize: "16px", color: "#333" }}>
+              Gửi lời mời kết bạn
+            </p>
+            <Button
+              variant="primary"
+              onClick={handleAddFriend}
+              style={{
+                marginLeft: "auto",
+                padding: "6px 12px",
+                fontSize: "14px",
+              }}
+              disabled={sentRequest}
+            >
+              {sentRequest
+                ? "Đã gửi"
+                : receivedRequest
+                ? "Đồng ý kết bạn"
+                : "Kết bạn"}
+            </Button>
+          </div>
         </div>
-      </div>
-
       )}
       <Modal show={show} onHide={handleClose} size="lg">
         <Modal.Header closeButton>
@@ -317,9 +346,9 @@ const handleAddFriend = async () => {
                         src={
                           userInfo.avatar
                             ? userInfo.avatar
-                            : userInfo.photoURL 
+                            : userInfo.photoURL
                             ? userInfo.photoURL
-                            : "https://i.imgur.com/rsJjBcH.png"
+                            : "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
                         }
                         alt="Avatar"
                         className="my-4"
@@ -329,28 +358,40 @@ const handleAddFriend = async () => {
                       <div className="d-flex flex-column justify-content-between  align-items-center">
                         <h5>{userInfo.name}</h5>
                         <Button
-                           variant={userInfo.members || isFriend? 'danger': 'primary'}
-                           disabled={sentRequest && !userInfo.members}
+                          variant={
+                            userInfo.members || isFriend ? "danger" : "primary"
+                          }
+                          disabled={sentRequest && !userInfo.members}
                           className="my-2"
                           onClick={() => {
-                            if(userInfo.members){
+                            if (userInfo.members) {
                               handleOutgroup();
-                            }
-                            else if (!isFriend && !sentRequest) {
+                            } else if (!isFriend && !sentRequest) {
                               handleAddFriend();
-                            }
-                            else if (isFriend) {
+                            } else if (isFriend) {
                               handleUnfriend(user._id);
                             }
                           }}
                         >
-                          {!userInfo.members  ?  isFriend? "Huỷ kết bạn": sentRequest? "Đã gửi": receivedRequest? "Đồng ý kết bạn" : "Kết bạn" : "Rời nhóm"}
+                          {!userInfo.members
+                            ? isFriend
+                              ? "Huỷ kết bạn"
+                              : sentRequest
+                              ? "Đã gửi"
+                              : receivedRequest
+                              ? "Đồng ý kết bạn"
+                              : "Kết bạn"
+                            : "Rời nhóm"}
                         </Button>
                         {/* {console.log(
                           user,
                           JSON.parse(localStorage.getItem("userId"))
                         )} */}
-                        <Button variant="" className="my-2" onClick={() => handleBt(user._id)}>
+                        <Button
+                          variant=""
+                          className="my-2"
+                          onClick={() => handleBt(user._id)}
+                        >
                           {!userInfo.members
                             ? "Beta"
                             : user.ownerId ===
@@ -415,7 +456,10 @@ const handleAddFriend = async () => {
                                   className="text-center d-flex align-items-center justify-content-center"
                                 >
                                   <Image
-                                    src={member.photoURL}
+                                    src={
+                                      member.photoURL ||
+                                      "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
+                                    }
                                     alt="Avatar"
                                     style={{
                                       width: "50px",
@@ -454,28 +498,35 @@ const handleAddFriend = async () => {
                                         >
                                           kick
                                         </Button>
-                                        {!member.roles.includes("admin")
-                                        ? (<Button
-                                        variant="primary"
-                                        onClick={() =>
-                                          handleSetAdmin(member.id, user._id)
-                                        }
-                                        className="font-weight-bold text-uppercase px-3 me-2 text-white"
-                                        style={{ fontSize: "10px" }}
-                                        >
-                                          Đặt quản trị viên
-                                        </Button>)
-                                        : (<Button
-                                        variant="info"
-                                        onClick={() =>
-                                          handleSetMember(member.id,  user._id)
-                                        }
-                                        className="font-weight-bold text-uppercase px-3 me-2 text-white"
-                                        style={{ fontSize: "10px" }}
-                                        >
-                                          Đặt thành viên
-                                        </Button>)
-                                        }
+                                        {!member.roles.includes("admin") ? (
+                                          <Button
+                                            variant="primary"
+                                            onClick={() =>
+                                              handleSetAdmin(
+                                                member.id,
+                                                user._id
+                                              )
+                                            }
+                                            className="font-weight-bold text-uppercase px-3 me-2 text-white"
+                                            style={{ fontSize: "10px" }}
+                                          >
+                                            Đặt quản trị viên
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            variant="info"
+                                            onClick={() =>
+                                              handleSetMember(
+                                                member.id,
+                                                user._id
+                                              )
+                                            }
+                                            className="font-weight-bold text-uppercase px-3 me-2 text-white"
+                                            style={{ fontSize: "10px" }}
+                                          >
+                                            Đặt thành viên
+                                          </Button>
+                                        )}
                                       </div>
                                     )}
                                 </Col>
@@ -504,10 +555,6 @@ const handleAddFriend = async () => {
         </Modal.Header>
         <Modal.Body>
           <Container fluid>
-            {/* <Thumb>
-    <ImageSidebarStyled2 src="https://i.imgur.com/rsJjBcH.png" rounded></ImageSidebarStyled2>
-    <Icon src={icons.camera} rounded></Icon>
-    </Thumb> */}
             <Row className="justify-content-center align-items-center h-100 w-100 d-flex">
               <Col lg="6" className="mb-4 mb-lg-0 w-100">
                 <Card className="mb-3" style={{ borderRadius: ".5rem" }}>
@@ -518,7 +565,10 @@ const handleAddFriend = async () => {
                         className="d-flex justify-content-center align-items-center"
                       >
                         <Image
-                          src={user.photoURL}
+                          src={
+                            user.photoURL ||
+                            "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
+                          }
                           style={{ width: "50px", height: "50px" }}
                           roundedCircle
                         />
@@ -558,9 +608,9 @@ const handleAddFriend = async () => {
 };
 
 const ImageSidebarStyled = styled(Image)`
-width: 50px;
-height: 50px;
-margin: 0 15px;
+  width: 50px;
+  height: 50px;
+  margin: 0 15px;
 `;
 
 const DivImage = styled.div`
@@ -571,9 +621,9 @@ const DivImage = styled.div`
   padding: 3px 0 3px 0;
 `;
 const StyledListGroupItem = styled(ListGroup.Item)`
-border-radius:10px;
-&:hover {
- background-color:rgb(157, 147, 189);
-}
-`
+  border-radius: 10px;
+  &:hover {
+    background-color: rgb(157, 147, 189);
+  }
+`;
 export default Header;
