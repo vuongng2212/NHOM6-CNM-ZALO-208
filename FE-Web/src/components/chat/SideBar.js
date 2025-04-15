@@ -313,7 +313,7 @@ const SideBar = () => {
                             ? avatar
                             : userInfo.avatar
                             ? userInfo.avatar
-                            : "https://i.imgur.com/rsJjBcH.png"
+                            : "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
                         }
                         alt="Avatar"
                         className="mb-3"

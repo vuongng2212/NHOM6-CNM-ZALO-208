@@ -26,7 +26,176 @@ const StyledListGroup = styled(ListGroup)`
   scrollbar-width: thin;
   scrollbar-track-color: transparent;
   scrollbar-color: #dedede transparent;
+  padding: 15px;
+  background-color: #f8f9fa;
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.7) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.7) 1px, transparent 1px);
+  background-size: 20px 20px;
 `;
+
+const MessageBubble = styled.div`
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: relative;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+
+  &.sender {
+    background-color: #0084ff;
+    color: white;
+    border-bottom-right-radius: 4px;
+    align-self: flex-end;
+  }
+
+  &.receiver {
+    background-color: #f1f0f0;
+    color: #333;
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+  }
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const PinnedMessageContainer = styled.div`
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px;
+  max-width: 90%;
+  border-left: 4px solid #0084ff;
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  .list-group-item {
+    border: none;
+    padding: 10px 15px;
+    background: transparent;
+  }
+
+  .btn-outline-danger {
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.8rem;
+  }
+`;
+
+const MessageContainer = styled.div`
+  .message-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .message-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .message-container::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+  }
+`;
+
+const MediaContainer = styled.div`
+  margin: 5px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background-color: #fff;
+  max-width: 300px;
+
+  img,
+  video,
+  embed {
+    width: 100%;
+    display: block;
+    object-fit: contain;
+  }
+
+  .file-name {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    color: #444;
+  }
+`;
+
+const MessageActionBar = styled.div`
+  position: absolute;
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 50px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  z-index: 1000;
+  transition: all 0.2s ease;
+  opacity: 0.95;
+
+  &.sender {
+    right: 100%;
+    margin-right: 10px;
+  }
+
+  &.receiver {
+    left: 100%;
+    margin-left: 10px;
+  }
+
+  .action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    color: #555;
+
+    &:hover {
+      background-color: #f5f5f5;
+      transform: scale(1.1);
+    }
+  }
+`;
+
+const ReactionMenu = styled(Dropdown.Menu)`
+  background-color: white !important;
+  border-radius: 50px !important;
+  padding: 6px !important;
+  min-width: auto !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+  border: none !important;
+  display: flex !important;
+
+  .dropdown-item {
+    padding: 8px !important;
+    border-radius: 50% !important;
+    margin: 0 2px !important;
+    font-size: 18px !important;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: transform 0.2s !important;
+
+    &:hover {
+      transform: scale(1.2) !important;
+      background-color: #f5f5f5 !important;
+    }
+  }
+`;
+
 const MessageList = (id) => {
   var socket = id.socket;
   const [show, setShow] = useState(false);
@@ -357,91 +526,61 @@ const MessageList = (id) => {
         <Row className="m-0 position-relative h-100">
           <div className="position-absolute z-3">
             {/* Display the first pinned message */}
-            {pinnedMessages.length > 0 &&
-              !showDropdown &&
-              (console.log("pinnedMessagessss", pinnedMessages),
-              (
-                <div className="pin-table">
-                  <ul className="list-group">
-                    <li
-                      key={pinnedMessages[0].id}
-                      className="list-group-item d-flex justify-content-between align-items-center"
+            {pinnedMessages.length > 0 && !showDropdown && (
+              <PinnedMessageContainer className="pin-table ms-3 mt-2">
+                <ul className="list-group">
+                  <li
+                    key={pinnedMessages[0].id}
+                    className="list-group-item d-flex justify-content-between align-items-center"
+                  >
+                    <div
+                      onClick={() =>
+                        handleScrollToReply(pinnedMessages[0].content)
+                      }
+                      style={{ cursor: "pointer" }}
                     >
-                      <div
-                        onClick={() =>
-                          handleScrollToReply(pinnedMessages[0].content)
-                        }
+                      <p
+                        className="mb-1"
+                        style={{ fontSize: "0.9rem", color: "#555" }}
                       >
-                        <p className="mb-1">
-                          <strong>From:</strong> {pinnedMessages[0].senderName}
-                        </p>
-                        <p className="mb-0">
-                          <strong>Message:</strong>{" "}
-                          {pinnedMessages[0].type === "image"
-                            ? "image"
-                            : pinnedMessages[0].type === "video"
-                            ? "vdieo"
-                            : pinnedMessages[0].type === "file"
-                            ? "file"
-                            : pinnedMessages[0].content}
-                        </p>
-                      </div>
+                        <strong>From:</strong> {pinnedMessages[0].senderName}
+                      </p>
+                      <p
+                        className="mb-0"
+                        style={{ fontSize: "0.9rem", fontWeight: "500" }}
+                      >
+                        {pinnedMessages[0].type === "image"
+                          ? "🖼️ Image"
+                          : pinnedMessages[0].type === "video"
+                          ? "🎬 Video"
+                          : pinnedMessages[0].type === "file"
+                          ? "📎 File"
+                          : pinnedMessages[0].content}
+                      </p>
+                    </div>
+                    <div className="d-flex">
                       <Button
-                        className="btn btn-outline-danger"
+                        variant="outline-danger"
+                        size="sm"
+                        className="me-2"
                         onClick={() => handleUnpin(pinnedMessages[0].id)}
                       >
                         Unpin
                       </Button>
-                      {/* Dropdown for additional pinned messages */}
-                      <Dropdown
-                        drop="down"
-                        className="position-absolute"
-                        style={{ left: "90%", top: "15px" }}
-                      >
-                        <Dropdown.Toggle
-                          variant="link"
-                          id="dropdown-settings"
-                          className="px-2"
+                      {pinnedMessages.length > 1 && (
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
                           onClick={() => setShowDropdown(!showDropdown)}
-                        ></Dropdown.Toggle>
-                        <Dropdown.Menu
-                          style={{ minWidth: "100%", maxWidth: "none" }}
                         >
-                          {pinnedMessages.slice(1).map((message, index) => (
-                            <Dropdown.Item key={message.id}>
-                              <div
-                                onClick={() =>
-                                  handleScrollToReply(pinnedMessages[0].content)
-                                }
-                              >
-                                <p className="mb-1">
-                                  <strong>From:</strong> {message.senderName}
-                                </p>
-                                <p className="mb-0">
-                                  <strong>Message:</strong>{" "}
-                                  {message.type === "image"
-                                    ? "image"
-                                    : message.type === "video"
-                                    ? "video"
-                                    : message.type === "file"
-                                    ? "file"
-                                    : message.content}
-                                </p>
-                              </div>
-                              <Button
-                                className="btn btn-outline-danger"
-                                onClick={() => handleUnpin(message.id)}
-                              >
-                                Unpin
-                              </Button>
-                            </Dropdown.Item>
-                          ))}
-                        </Dropdown.Menu>
-                      </Dropdown>
-                    </li>
-                  </ul>
-                </div>
-              ))}
+                          {pinnedMessages.length - 1}+
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                </ul>
+              </PinnedMessageContainer>
+            )}
             {showDropdown && (
               <div className="pin-table">
                 <ul className="list-group">
@@ -516,30 +655,35 @@ const MessageList = (id) => {
                     onMouseLeave={handleMouseLeave}
                   >
                     {/* Chat Item  */}
-                    <div className="d-flex flex-row">
+                    <div
+                      className={`d-flex flex-row ${
+                        message.sent.toString() ===
+                        JSON.parse(localStorage.getItem("userId"))
+                          ? "justify-content-end"
+                          : "justify-content-start"
+                      } mb-2`}
+                    >
                       {message.sent.toString() !=
                         JSON.parse(localStorage.getItem("userId")) && (
                         <Image
                           src={message.avatarSender}
-                          className={`mx-2
-                          ${
-                            message.sent.toString() ===
-                            JSON.parse(localStorage.getItem("userId"))
-                              ? "order-2"
-                              : "order-1"
-                          }`}
-                          style={{ width: "40px", height: "40px" }}
+                          className="align-self-end mb-1 me-2"
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            border: "2px solid white",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                          }}
                           roundedCircle
                         />
                       )}
-                      <div
-                        className={`message-content d-inline-block border border-primary p-2 rounded position-relative
-                          ${
-                            message.sent.toString() ===
-                            JSON.parse(localStorage.getItem("userId"))
-                              ? "order-1"
-                              : "order-2"
-                          }`}
+                      <MessageBubble
+                        className={`message-content position-relative ${
+                          message.sent.toString() ===
+                          JSON.parse(localStorage.getItem("userId"))
+                            ? "sender"
+                            : "receiver"
+                        }`}
                       >
                         {message.sent.toString() !=
                           JSON.parse(localStorage.getItem("userId")) && (
@@ -583,45 +727,47 @@ const MessageList = (id) => {
                                   <div className="text-muted">Forwarded</div>
                                 )}
                                 {message.type === "image" && (
-                                  <Image
-                                    src={message.media.url}
-                                    style={{
-                                      width: "300px",
-                                      height: "auto",
-                                      borderRadius: "5px",
-                                      display: "block",
-                                    }}
-                                  />
-                                )}
-                                {message.type === "video" && (
-                                  <video
-                                    src={message.media.url}
-                                    style={{
-                                      width: "300px",
-                                      height: "auto",
-                                      borderRadius: "5px",
-                                      display: "block",
-                                    }}
-                                    controls
-                                  />
-                                )}
-                                {message.type === "file" && (
-                                  <a
-                                    href={message.media.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    <embed
+                                  <MediaContainer>
+                                    <Image
                                       src={message.media.url}
+                                      fluid
                                       style={{
-                                        width: "300px",
-                                        height: "auto",
-                                        borderRadius: "5px",
-                                        display: "block",
+                                        maxHeight: "250px",
+                                        objectFit: "cover",
                                       }}
                                     />
-                                    <div>{message.media.name}</div>
-                                  </a>
+                                  </MediaContainer>
+                                )}
+                                {message.type === "video" && (
+                                  <MediaContainer>
+                                    <video
+                                      src={message.media.url}
+                                      controls
+                                      style={{
+                                        maxHeight: "250px",
+                                      }}
+                                    />
+                                  </MediaContainer>
+                                )}
+                                {message.type === "file" && (
+                                  <MediaContainer>
+                                    <a
+                                      href={message.media.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      style={{ textDecoration: "none" }}
+                                    >
+                                      <embed
+                                        src={message.media.url}
+                                        style={{
+                                          height: "150px",
+                                        }}
+                                      />
+                                      <div className="file-name">
+                                        {message.media.name}
+                                      </div>
+                                    </a>
+                                  </MediaContainer>
                                 )}
 
                                 {message.content.length > 60
@@ -689,63 +835,108 @@ const MessageList = (id) => {
                         {showDropdownIndex === index &&
                           !message.unsent &&
                           !message.hided && (
-                            <>
-                              {/* Reply Button  */}
-                              <Dropdown
-                                className="position-absolute"
-                                style={
-                                  message.sent.toString() ===
-                                  JSON.parse(localStorage.getItem("userId"))
-                                    ? { left: "-90px", top: "20%" }
-                                    : { right: "-90px", top: "20%" }
+                            <MessageActionBar
+                              className={
+                                message.sent.toString() ===
+                                JSON.parse(localStorage.getItem("userId"))
+                                  ? "sender"
+                                  : "receiver"
+                              }
+                              style={{
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                              }}
+                            >
+                              {/* Reply Button */}
+                              <div
+                                className="action-button"
+                                onClick={() =>
+                                  handleReplyMessage(
+                                    message.id,
+                                    message.content,
+                                    message.type
+                                  )
                                 }
                               >
+                                <FontAwesomeIcon icon={faReply} />
+                              </div>
+
+                              {/* Reaction Button */}
+                              <Dropdown drop="up" className="d-inline">
                                 <Dropdown.Toggle
-                                  variant="link"
-                                  id="dropdown-reply"
-                                  className="px-2"
-                                  bsPrefix="dropdown-toggle-custom"
+                                  as="div"
+                                  className="action-button"
+                                  id="reaction-dropdown"
                                 >
-                                  <FontAwesomeIcon
-                                    icon={faReply}
-                                    onClick={() =>
-                                      handleReplyMessage(
-                                        message.id,
-                                        message.content,
-                                        message.type
-                                      )
-                                    }
-                                  />
+                                  <FontAwesomeIcon icon={faThumbsUp} />
                                 </Dropdown.Toggle>
+
+                                <ReactionMenu>
+                                  <Dropdown.Item
+                                    onClick={() =>
+                                      handleReaction("love", message.id)
+                                    }
+                                  >
+                                    <span>❤️</span>
+                                  </Dropdown.Item>
+                                  <Dropdown.Item
+                                    onClick={() =>
+                                      handleReaction("haha", message.id)
+                                    }
+                                  >
+                                    <span>😆</span>
+                                  </Dropdown.Item>
+                                  <Dropdown.Item
+                                    onClick={() =>
+                                      handleReaction("wow", message.id)
+                                    }
+                                  >
+                                    <span>😮</span>
+                                  </Dropdown.Item>
+                                  <Dropdown.Item
+                                    onClick={() =>
+                                      handleReaction("sad", message.id)
+                                    }
+                                  >
+                                    <span>😢</span>
+                                  </Dropdown.Item>
+                                  <Dropdown.Item
+                                    onClick={() =>
+                                      handleReaction("angry", message.id)
+                                    }
+                                  >
+                                    <span>😠</span>
+                                  </Dropdown.Item>
+                                  <Dropdown.Item
+                                    onClick={() =>
+                                      handleReaction("like", message.id)
+                                    }
+                                  >
+                                    <span>👍</span>
+                                  </Dropdown.Item>
+                                </ReactionMenu>
                               </Dropdown>
 
-                              {/* Option Button  */}
-                              <Dropdown
-                                className="position-absolute"
-                                style={
-                                  message.sent.toString() ===
-                                  JSON.parse(localStorage.getItem("userId"))
-                                    ? { left: "-30px", top: "20%" }
-                                    : { right: "-30px", top: "20%" }
-                                }
-                              >
+                              {/* Options Button */}
+                              <Dropdown className="d-inline">
                                 <Dropdown.Toggle
-                                  variant="link"
-                                  id="dropdown-settings"
-                                  className="px-2"
-                                ></Dropdown.Toggle>
-                                <Dropdown.Menu>
+                                  as="div"
+                                  className="action-button"
+                                  id="options-dropdown"
+                                >
+                                  <i className="fas fa-ellipsis-v"></i>
+                                </Dropdown.Toggle>
+
+                                <Dropdown.Menu className="shadow-sm border-0">
                                   {message.sent.toString() ===
                                     JSON.parse(
                                       localStorage.getItem("userId")
                                     ) && (
-                                    <>
-                                      <Dropdown.Item
-                                        onClick={() => handleUnsend(message.id)}
-                                      >
-                                        <span>Thu Hồi</span>
-                                      </Dropdown.Item>
-                                    </>
+                                    <Dropdown.Item
+                                      onClick={() => handleUnsend(message.id)}
+                                    >
+                                      <span>Thu Hồi</span>
+                                    </Dropdown.Item>
                                   )}
                                   <Dropdown.Item
                                     onClick={() => handlePinMessage(message.id)}
@@ -769,97 +960,9 @@ const MessageList = (id) => {
                                   </Dropdown.Item>
                                 </Dropdown.Menu>
                               </Dropdown>
-
-                              {/* Reaction Button  */}
-                              <Dropdown
-                                drop="up"
-                                className="position-absolute dropdown2"
-                                style={
-                                  message.sent.toString() ===
-                                  JSON.parse(localStorage.getItem("userId"))
-                                    ? { left: "-60px", top: "20%" }
-                                    : { right: "-60px", top: "20%" }
-                                }
-                              >
-                                <Dropdown.Toggle
-                                  variant="link"
-                                  id="dropdown-settings"
-                                  className="px-2"
-                                  bsPrefix="dropdown-toggle-custom"
-                                >
-                                  <FontAwesomeIcon icon={faThumbsUp} />
-                                </Dropdown.Toggle>
-                                <style>
-                                  {`
-                          .dropdown-toggle-custom {
-                            background-color: transparent;
-                          }
-                          .dropdown2 .dropdown-item {
-                            background-color: transparent;
-                            border: none;
-                            padding: 0.25rem;
-                            font-size: 1.5rem;
-                          }
-                          .dropdown2 .dropdown-item:hover {
-                            background-color: transparent;
-                          }
-                          .dropdown2 .dropdown-menu {
-                            background-color: transparent;
-                            padding: 0 10px;
-                            border-radius: 30px;
-                          }
-                        `}
-                                </style>
-                                <Dropdown.Menu>
-                                  <div className="d-flex">
-                                    <Dropdown.Item
-                                      onClick={() =>
-                                        handleReaction("love", message.id)
-                                      }
-                                    >
-                                      <span>❤</span>
-                                    </Dropdown.Item>
-                                    <Dropdown.Item
-                                      onClick={() =>
-                                        handleReaction("haha", message.id)
-                                      }
-                                    >
-                                      <span>😆</span>
-                                    </Dropdown.Item>
-                                    <Dropdown.Item
-                                      onClick={() =>
-                                        handleReaction("wow", message.id)
-                                      }
-                                    >
-                                      <span>😮</span>
-                                    </Dropdown.Item>
-                                    <Dropdown.Item
-                                      onClick={() =>
-                                        handleReaction("sad", message.id)
-                                      }
-                                    >
-                                      <span>😢</span>
-                                    </Dropdown.Item>
-                                    <Dropdown.Item
-                                      onClick={() =>
-                                        handleReaction("angry", message.id)
-                                      }
-                                    >
-                                      <span>😠</span>
-                                    </Dropdown.Item>
-                                    <Dropdown.Item
-                                      onClick={() =>
-                                        handleReaction("like", message.id)
-                                      }
-                                    >
-                                      <span>👍</span>
-                                    </Dropdown.Item>
-                                  </div>
-                                </Dropdown.Menu>
-                              </Dropdown>
-                            </>
+                            </MessageActionBar>
                           )}
-                      </div>
+                      </MessageBubble>
                     </div>
                   </ListGroup.Item>
                 ))
@@ -867,16 +970,37 @@ const MessageList = (id) => {
                 <div className="text-center">No messages</div>
               )}
 
-              <div className="px-1 d-flex flex-row-reverse">
-                <Image
-                  src={
-                    currentUserAvatar ||
-                    "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
-                  }
-                  style={{ width: "20px", height: "20px", borderRadius: "50%" }}
-                  alt="Đã xem"
-                  title="Bạn đã xem"
-                />
+              <div className="px-1 d-flex flex-row-reverse align-items-center mt-1 mb-2">
+                <div
+                  className="d-flex align-items-center"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.8)",
+                    padding: "3px 8px",
+                    borderRadius: "12px",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <small
+                    className="text-muted me-1"
+                    style={{ fontSize: "0.7rem" }}
+                  >
+                    Đã xem
+                  </small>
+                  <Image
+                    src={
+                      currentUserAvatar ||
+                      "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg"
+                    }
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "50%",
+                      border: "1px solid white",
+                    }}
+                    alt="Đã xem"
+                    title="Bạn đã xem"
+                  />
+                </div>
               </div>
             </StyledListGroup>
           </Col>
