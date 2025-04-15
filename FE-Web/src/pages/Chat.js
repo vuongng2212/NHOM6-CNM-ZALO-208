@@ -130,6 +130,11 @@ const Chat = () => {
             <ChatList id={id} />
           </FourthColumn>
         </FirstColumn>
+        <SecondColumn>
+          <Tab.Content className="h-100">
+            {id ? <ChatPane eventKey={id} id={id} /> : <div></div>}
+          </Tab.Content>
+        </SecondColumn>
       </Container>
       <ConfirmDialog
         show={showMeeting}
