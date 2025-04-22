@@ -47,17 +47,17 @@ const registerUser = async (req, res) => {
     if (!password || !displayName || !dateOfBirth)
       return res
         .status(400)
-        .json({ success: false, message: "Không được để trống các field" });
+        .json({ success: false, message: "Không để trống các trường" });
     // Kiểm tra định dạng của email
     if (!validator.isEmail(email))
       return res
         .status(400)
-        .json({ success: false, message: "Email không hợp lệ!" });
+        .json({ success: false, message: "Email phải là email hợp lệ..." });
     // Kiểm tra mật khẩu có đủ mạnh không
     if (!validator.isStrongPassword(password))
       return res
         .status(400)
-        .json({ success: false, message: "Mật khẩu chưa phù hợp" });
+        .json({ success: false, message: "Mật khẩu phải mạnh..." });
     // Kiểm tra ngày sinh nhật có đủ 15 tuổi không
     const birthDate = new Date(dateOfBirth);
     const currentDate = new Date();
@@ -71,7 +71,7 @@ const registerUser = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Bạn phải ít nhất 15 tuổi để đăng ký",
+        message: "Bạn phải ít nhất 15 tuổi mới được đăng ký...",
       });
     }
     // Tạo một user mới và lưu vào cơ sở dữ liệu
@@ -80,8 +80,6 @@ const registerUser = async (req, res) => {
       email,
       displayName,
       dateOfBirth,
-      photoURL:
-        "https://res.cloudinary.com/dfvuavous/image/upload/v1744729521/mh7yvzr5xtsta96uyh1q.jpg",
     });
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
@@ -94,7 +92,6 @@ const registerUser = async (req, res) => {
       email,
       displayName,
       dateOfBirth,
-      photoURL: user.photoURL,
       token,
     });
   } catch (error) {
@@ -285,7 +282,7 @@ const forgotPassword = async (req, res) => {
     });
   }
 };
-
+//
 const getUser = async (req, res) => {
   const id = req.params.id;
   try {
@@ -754,28 +751,64 @@ const declineFriendRequest = async (req, res) => {
   }
 };
 
-//hủy lời mời kết bạn
+// //hủy lời mời kết bạn
+// const unfriend = async (req, res) => {
+//   const friendId = req.body.friendId;
+//   try {
+//     const user = await User.findById(req.user.id);
+//     const friend = await User.findById(friendId);
+//     if (!friend) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+//     if (!user.friends.includes(friendId)) {
+//       return res.status(400).json({ message: "User is not your friend" });
+//     }
+//     user.friends = user.friends.filter(
+//       (id) => id.toString() !== friendId.toString()
+//     );
+//     friend.friends = friend.friends.filter(
+//       (id) => id.toString() !== user._id.toString()
+//     );
+//     await user.save();
+//     await friend.save();
+//     res.status(200).json(apiCode.success({}, "Unfriend Success"));
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+/**
+ * Hủy kết bạn
+ * @param {Object} req - Request object chứa ID người bạn cần hủy
+ * @param {Object} res - Response object để trả về kết quả
+ */
 const unfriend = async (req, res) => {
   const friendId = req.body.friendId;
   try {
+    // Lấy thông tin user hiện tại và người bạn
     const user = await User.findById(req.user.id);
     const friend = await User.findById(friendId);
+    
+    // Kiểm tra người bạn tồn tại
     if (!friend) {
       return res.status(404).json({ message: "User not found" });
     }
+    
+    // Kiểm tra có phải là bạn không
     if (!user.friends.includes(friendId)) {
       return res.status(400).json({ message: "User is not your friend" });
     }
-    user.friends = user.friends.filter(
-      (id) => id.toString() !== friendId.toString()
-    );
-    friend.friends = friend.friends.filter(
-      (id) => id.toString() !== user._id.toString()
-    );
+    
+    // Xóa khỏi danh sách bạn bè cả 2 bên
+    user.friends = user.friends.filter( (id) => id.toString() !== friendId.toString());
+    friend.friends = friend.friends.filter( (id) => id.toString() !== user._id.toString());
+    
+    // Lưu thay đổi
     await user.save();
     await friend.save();
     res.status(200).json(apiCode.success({}, "Unfriend Success"));
-  } catch (error) {
+  }
+  catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
@@ -807,6 +840,9 @@ const cancelFriendRequest = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+//##  `getAllFriendRequest`, `getAllCancelFriendRequest`
+// - **Mô tả:** Lấy danh sách lời mời kết bạn đã nhận hoặc đã gửi
 const getAllCancelFriendRequest = async (req, res) => {
   const userId = req.user.id;
   try {
@@ -837,6 +873,8 @@ const getAllCancelFriendRequest = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+
 const getAllFriendRequest = async (req, res) => {
   const userId = req.user.id;
   try {
@@ -890,6 +928,10 @@ const checkFriend = async (req, res) => {
   }
 };
 
+
+//## 17. 🧑‍🤝‍🧑 `getAllFriend`
+// - **Mô tả:** Trả về danh sách bạn bè của user
+
 const getAllFriend = async (req, res) => {
   // Kiểm tra xem req.user tồn tại và có thuộc tính _id không
   const userId = req.user.id;
@@ -913,7 +955,7 @@ const getAllFriend = async (req, res) => {
       .json({ message: "Đã xảy ra lỗi khi lấy danh sách yêu cầu kết bạn." });
   }
 };
-
+//Lấy thông tin người dùng hoặc nhóm tương ứng với chatRoomId.
 const getUserByChatRoomId = async (req, res) => {
   const chatRoomId = req.params.chatRoomId;
   try {
@@ -942,6 +984,10 @@ const getUsersByChatRoomId = async (chatRoomId) => {
     console.error(err);
   }
 };
+
+///Trả về thông tin chi tiết của một người dùng bất kỳ (xem hồ sơ), đồng thời đếm số nhóm chung giữa họ và người đang đăng nhập.
+
+
 async function getUserProfile(req, res) {
   try {
     const id = req.params.id;
@@ -951,8 +997,8 @@ async function getUserProfile(req, res) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const groupIds = await getGroupIdsByUserId(user._id);
-    const groupIds2 = await getGroupIdsByUserId(req.user.id);
+    const groupIds = await getGroupIdsByUserId(user._id);//để lấy nhóm của người bị xem
+    const groupIds2 = await getGroupIdsByUserId(req.user.id);// để lấy nhóm của người đăng nhập
     a = groupIds2.map((value) => {
       return value.toString();
     });
@@ -985,22 +1031,35 @@ async function getUserProfile(req, res) {
     res.status(500).json({ message: "Server error" });
   }
 }
+
+
+//getUserNotInGroup	req.user.id	Lọc bạn bè chưa vào nhóm
+/**
+ * Lấy danh sách bạn bè chưa trong nhóm
+ * @param {Object} req - Request object chứa groupId
+ * @param {Object} res - Response object để trả về kết quả
+ */
 const getUserNotInGroup = async (req, res) => {
   const groupId = req.params.groupId;
   const userId = req.user.id;
+  
+  // Lấy user hiện tại và danh sách bạn bè
   const user = await User.findById(userId);
   const users = await User.find({ _id: { $in: user.friends } });
 
+  // Lấy thông tin group
   Group.findById(groupId)
     .then((group) => {
       if (!group) {
-        return res.status(404).json({ message: "Group not found" });
+        return res.status(404).json({ message: 'Group not found' });
       }
+      
+      // Lấy danh sách thành viên group
       const memberIds = group.members.map((member) => member.userId.toString());
       console.log(memberIds);
-      const usersNotInGroup = users.filter(
-        (user) => !memberIds.includes(user._id.toString())
-      );
+      
+      // Lọc ra bạn bè chưa trong group
+      const usersNotInGroup = users.filter((user) => !memberIds.includes(user._id.toString()));
       usersNotInGroup.forEach((user) => {
         console.log(user._id);
       });
@@ -1008,9 +1067,9 @@ const getUserNotInGroup = async (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: 'Server error' });
     });
-};
+}
 
 module.exports = {
   registerUser,

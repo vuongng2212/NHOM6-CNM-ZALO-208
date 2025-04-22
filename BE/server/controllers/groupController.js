@@ -114,14 +114,21 @@ const uploadImageToS3 = async (imageData) => {
     });
   });
 };
-
+////
 const createGroup = async (req, res) => {
   try {
 
     const ownerId = req.user.id;
     const photo=req.file;
     const  name = req.body.name;
-    const members = JSON.parse(req.body.members)
+    // const members = JSON.parse(req.body.members)
+    let members;
+    try {
+      members = JSON.parse(req.body.members);
+    } catch (e) {
+      return res.status(400).json({ error: "Dữ liệu thành viên không hợp lệ" });
+    }
+    
     if(!name )
       return res.status(400).json({ error: "Chưa nhập tên nhóm" })
 
@@ -214,98 +221,6 @@ const createGroup = async (req, res) => {
     res.status(500).json({ error: "Đã xảy ra lỗi khi tạo nhóm" });
   }
 };
-
-// const addMember = async (req, res) => {
-//     try {
-//         // Lấy ID của người đăng nhập từ JWT
-//         const ownerId = req.user.id;
-//         // Lấy ID của nhóm từ URL
-//         const groupId = req.params.groupId;
-
-//         // Lấy danh sách các thành viên mới từ body của yêu cầu
-//         const { newMembers } = req.body;
-
-//         // Kiểm tra tính hợp lệ của dữ liệu đầu vào
-//         if (!groupId || !newMembers || newMembers.length === 0) {
-//             return res.status(400).json({ error: 'Vui lòng cung cấp ID nhóm và ít nhất một thành viên mới' });
-//         }
-
-//         // Tìm nhóm dựa trên groupId
-//         const group = await Group.findById(groupId);
-//         console.log(checkPermsOfUserInGroup(ownerId, group).isOwner());
-//         console.log(checkPermsOfUserInGroup(ownerId, group).isAdmin());
-//         console.log(checkPermsOfUserInGroup(ownerId, group).canEditMember());
-
-//         // Kiểm tra tính hợp lệ của nhóm
-//         if (!group) {
-//             return res.status(404).json({ error: 'Không tìm thấy nhóm' });
-//         }
-//         // Kiểm tra quyền thêm thành viên vào nhóm
-//         if (checkPermsOfUserInGroup(ownerId, group).isOwner()
-//             || checkPermsOfUserInGroup(ownerId, group).isAdmin()) {
-//             return res.status(403).json({ error: 'Bạn không có quyền thêm thành viên vào nhóm này' });
-//         }
-//         // Lọc các thành viên mới để loại bỏ những thành viên đã tồn tại trong nhóm
-//         const filteredNewMembers = newMembers.filter(newMember => {
-//             return !group.members.some(existingMember => existingMember.userId.toString() === newMember.userId);
-//         });
-//         // Thêm các thành viên mới vào nhóm
-//         filteredNewMembers.forEach(member => {
-//             group.members.push({
-//                 userId: member.userId,
-//                 addByUserId: ownerId,
-//                 // MẶc định ban đàu roles là member
-//                 roles: member.roles || [Roles.MEMBER],
-//                 addAt: Date.now()
-//             });
-//         });
-//         // Kiểm tra xem có thành viên nào được thêm vào không
-//         if (filteredNewMembers.length === 0) {
-//             return res.status(400).json({ error: 'Tất cả các thành viên mới đã tồn tại trong nhóm' });
-//         }
-//         // Lưu lại thông tin nhóm đã cập nhật
-//         // await group.save();
-//         // Trả về phản hồi thành công
-//         res.status(200).json({ success: true, message: 'Thành viên đã được thêm vào nhóm' });
-//     } catch (error) {
-//         // Xử lý lỗi nếu có
-//         console.error('Lỗi khi thêm thành viên vào nhóm:', error);
-//         res.status(500).json({ error: 'Đã xảy ra lỗi khi thêm thành viên vào nhóm' });
-//     }
-// };
-
-// const deleteMember = async(req,res)=>{
-//     try {
-//         const ownerId = req.user.id;
-//         const groupId = req.params.groupId;
-//         const { members } = req.body;
-//         if (!groupId || !members || members.length === 0) {
-//             return res.status(400).json({ error: 'Vui lòng cung cấp ID nhóm và ít nhất một thành viên mới' });
-//         }
-//         const group = await Group.findById(groupId);
-//         if (!group) {
-//             return res.status(404).json({ error: 'Không tìm thấy nhóm' });
-//         }
-//         if (group.ownerId.toString() !== ownerId) {
-//             return res.status(403).json({ error: 'Bạn không có quyền thêm thành viên vào nhóm này' });
-//         }
-//         const filteredMembers = members.filter(member => {
-//             return group.members.some(existingMember => existingMember.userId.toString() === member.userId);
-//         });
-//         filteredMembers.forEach(member => {
-//             group.members = group.members.filter(existingMember => existingMember.userId.toString() !== member.userId);
-//         });
-//         if (filteredMembers.length === 0) {
-//             return res.status(400).json({ error: 'Tất cả các thành viên mới đã tồn tại trong nhóm' });
-//         }
-//         await group.save();
-//         res.status(200).json({ success: true, message: 'Thành viên đã được xóa khỏi nhóm' });
-//     } catch (error) {
-//         console.error('Lỗi khi xóa thành viên khỏi nhóm:', error);
-//         res.status(500).json({ error: 'Đã xảy ra lỗi khi xóa thành viên khỏi nhóm' });
-//     }
-
-// }
 const addMember = async (req, res) => {
   try {
     const userId = req.body.userId;
