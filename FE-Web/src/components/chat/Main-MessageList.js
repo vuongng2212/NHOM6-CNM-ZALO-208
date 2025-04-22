@@ -263,7 +263,10 @@ const MessageList = (id) => {
   }, [listGroupRef.current, messages]);
 
   useEffect(() => {
-    socket.on("message", (message) => {
+    // Xử lý tin nhắn mới và tránh tạo nhiều listener trùng lặp
+    if (!socket) return; // Kiểm tra socket tồn tại
+
+    const handleNewMessage = (message) => {
       const newMessage = {
         id: message.id,
         content: message.content,
@@ -276,9 +279,18 @@ const MessageList = (id) => {
         media: message.media,
         pin: message.pin,
       };
-      setMessages([...messages, newMessage]);
-    });
-  }, [messages]);
+      // Sử dụng functional update để tránh stale state
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+    };
+
+    // Đăng ký listener một lần duy nhất
+    socket.on("message", handleNewMessage);
+
+    // Cleanup khi component unmount hoặc re-render
+    return () => {
+      socket.off("message", handleNewMessage);
+    };
+  }, [socket]); // Chỉ phụ thuộc vào socket, không phụ thuộc vào messages
 
   const [showDropdownIndex, setShowDropdownIndex] = useState(null);
   // const pinTableRef = useRef(null);
@@ -389,6 +401,7 @@ const MessageList = (id) => {
   const handleUnsend = async (messageId) => {
     // const confirm = window.confirm('Bạn có chắc chắn muốn thu hồi tin nhắn này?');
     // if (!confirm) return;
+    if (!socket) return; // Kiểm tra socket tồn tại
 
     const res = await axiosClient.patch(`/unsent-message/${messageId}`);
     // if (res.status === 200) setMessages(messages.map(message => message.id === messageId ? { ...message, unsent: true } : message));
@@ -412,6 +425,8 @@ const MessageList = (id) => {
     setShow(true);
   };
   const handleSendForward = async (index, idChatRoom) => {
+    if (!socket) return; // Kiểm tra socket tồn tại
+
     // console.log('forward message', messageId, idChatRoom);
     const res = await axiosClient.patch(`/forward-message/${messageId}`, {
       data: {
@@ -431,35 +446,50 @@ const MessageList = (id) => {
     }
     setForwarded([...forwarded, index]);
   };
+
   useEffect(() => {
-    socket.on("unsend message", (a) => {
-      // console.log('unsend message', a);
+    if (!socket) return; // Kiểm tra socket tồn tại
+
+    const handleUnsendMessage = (a) => {
       setMessages(
         messages.map((message) =>
           message.id === a.id ? { ...message, unsent: true } : message
         )
       );
-    });
-  }, [messages]);
+    };
+
+    socket.on("unsend message", handleUnsendMessage);
+
+    return () => {
+      socket.off("unsend message", handleUnsendMessage);
+    };
+  }, [messages, socket]);
 
   const handleReaction = async (reaction, messageId) => {
-    const res = await axiosClient.patch(`/react-message/${messageId}`, {
-      data: {
-        reaction,
-      },
-    });
-    // console.log('resasdasd', res.data.data.reactions);
-    if (res.status === 200) {
-      socket.emit("react message", {
-        chatRoomId: id.id,
-        messageId,
-        reactions: res.data.data.reactions,
+    if (!socket) return; // Kiểm tra socket tồn tại
+
+    try {
+      const res = await axiosClient.patch(`/react-message/${messageId}`, {
+        data: {
+          reaction,
+        },
       });
+      if (res.status === 200) {
+        socket.emit("react message", {
+          chatRoomId: id.id,
+          messageId,
+          reactions: res.data.data.reactions,
+        });
+      }
+    } catch (error) {
+      console.error("Error sending reaction:", error);
     }
   };
+
   useEffect(() => {
-    socket.on("react message", (message) => {
-      // console.log('react message', message);
+    if (!socket) return; // Kiểm tra socket tồn tại
+
+    const handleReactMessage = (message) => {
       setMessages(
         messages.map((m) =>
           m.id === message.messageId
@@ -467,8 +497,15 @@ const MessageList = (id) => {
             : m
         )
       );
-    });
-  }, [messages]);
+    };
+
+    socket.on("react message", handleReactMessage);
+
+    return () => {
+      socket.off("react message", handleReactMessage);
+    };
+  }, [messages, socket]);
+
   const convertReaction = (reaction) => {
     switch (reaction) {
       case "like":
@@ -563,7 +600,7 @@ const MessageList = (id) => {
                         variant="outline-danger"
                         size="sm"
                         className="me-2"
-                        onClick={() => handleUnpin(pinnedMessages[0].id)}
+                        onClick={() => handleUnpin(pinnedMessages[0].id, id.id)}
                       >
                         Unpin
                       </Button>
@@ -610,7 +647,7 @@ const MessageList = (id) => {
                       </div>
                       <Button
                         className="btn btn-outline-danger"
-                        onClick={() => handleUnpin(message.id)}
+                        onClick={() => handleUnpin(message.id, id.id)}
                       >
                         Unpin
                       </Button>
@@ -939,7 +976,9 @@ const MessageList = (id) => {
                                     </Dropdown.Item>
                                   )}
                                   <Dropdown.Item
-                                    onClick={() => handlePinMessage(message.id)}
+                                    onClick={() =>
+                                      handlePinMessage(message.id, id.id)
+                                    }
                                   >
                                     <span>Ghim</span>
                                   </Dropdown.Item>
