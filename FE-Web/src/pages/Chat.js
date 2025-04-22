@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext } from "react";
+import React, { useState, useEffect, createContext, useRef } from "react";
 import { Col, ListGroup } from "react-bootstrap";
 import styled from "styled-components";
 import Tab from "react-bootstrap/Tab";
@@ -15,7 +15,7 @@ import ConfirmDialog from "../components/chat/DialogMeeting";
 import { useParams } from "react-router-dom";
 import io from "socket.io-client";
 const ENDPOINT = process.env.REACT_APP_API_URL;
-let socket;
+let socket = null; // Khởi tạo socket là null
 
 const ChatMenu = () => (
   <ChatColStyled>
@@ -49,10 +49,24 @@ const ChatItemGroup = (id) => {
       ));
       setChatItems(chatItems);
     });
-    socket.on("message", (message) => {
+
+    // Chỉ đăng ký event listener khi socket đã tồn tại
+    if (!socket) return;
+
+    // Xử lý tin nhắn mới bằng cách cập nhật id để trigger cập nhật danh sách chat
+    const handleNewMessage = (message) => {
       setId(message);
-    });
-  }, [id, id2]);
+    };
+
+    socket.on("message", handleNewMessage);
+
+    // Cleanup khi component unmount
+    return () => {
+      if (socket) {
+        socket.off("message", handleNewMessage);
+      }
+    };
+  }, [id, socket]); // Thêm socket vào dependencies
 
   return <StyledListGroup>{chatItems}</StyledListGroup>;
 };
@@ -69,30 +83,92 @@ const ChatPane = ({ id }) => {
 };
 const Chat = () => {
   const { id } = useParams();
-  socket = io(ENDPOINT);
-  socket.on("connected", () => {
-    console.log("connected");
-  });
-  socket.emit("setup", localStorage.getItem("userId"));
-  socket.on("setup", (user) => {
-    console.log("setup", user);
-  });
-  if (id) {
-    socket.emit("join chat", id, localStorage.getItem("userId"));
-    socket.on("joined chat", (room) => {
-      console.log("joined chat", room);
-    });
-  }
   const [showMeeting, setShowMeeting] = useState(false);
   const [data, setData] = useState({}); // New state variable
   const [user, setUser] = useState({});
+  const [messages, setMessages] = useState([]);
+  const socketInitialized = useRef(false);
+  const [socketError, setSocketError] = useState(false);
+
+  // Khởi tạo socket một lần duy nhất khi component mount
+  useEffect(() => {
+    if (!socketInitialized.current && !socket) {
+      try {
+        socket = io(ENDPOINT, {
+          reconnectionAttempts: 5, // Số lần thử kết nối lại
+          reconnectionDelay: 1000, // Thời gian giữa các lần thử kết nối (ms)
+          timeout: 10000, // Thời gian chờ kết nối (ms)
+          transports: ["websocket", "polling"], // Cố gắng sử dụng WebSocket trước, fallback sang polling
+        });
+        socketInitialized.current = true;
+
+        // Sự kiện kết nối thành công
+        socket.on("connect", () => {
+          console.log("Socket connected successfully");
+          setSocketError(false);
+          // Thiết lập user cho socket
+          socket.emit("setup", localStorage.getItem("userId"));
+        });
+
+        // Xử lý lỗi kết nối
+        socket.on("connect_error", (error) => {
+          console.error("Socket connection error:", error);
+          setSocketError(true);
+        });
+
+        // Xử lý ngắt kết nối
+        socket.on("disconnect", (reason) => {
+          console.log("Socket disconnected:", reason);
+          // Nếu server ngắt kết nối, thử kết nối lại
+          if (reason === "io server disconnect") {
+            socket.connect();
+          }
+        });
+
+        // Khi thông tin user được thiết lập
+        socket.on("setup", (user) => {
+          console.log("Setup completed for user:", user);
+        });
+
+        // Dọn dẹp khi component unmount
+        return () => {
+          if (socket) {
+            socket.disconnect();
+            socket = null;
+          }
+          socketInitialized.current = false;
+        };
+      } catch (error) {
+        console.error("Error initializing socket:", error);
+        setSocketError(true);
+        socketInitialized.current = false;
+      }
+    }
+  }, []);
+
+  // Tham gia phòng chat khi có id
+  useEffect(() => {
+    if (id && socket && socket.connected) {
+      socket.emit("join chat", id, localStorage.getItem("userId"));
+      console.log("Joining chat room:", id);
+    }
+  }, [id, socket?.connected]);
+
+  // Hiển thị thông báo khi có lỗi socket
+  useEffect(() => {
+    if (socketError) {
+      alert("Không thể kết nối đến server chat. Vui lòng làm mới trang!");
+    }
+  }, [socketError]);
 
   const handleClose = () => {
+    if (!socket) return;
     socket.emit("decline", { meetingId: data.meetingId, userId: user._id });
     setShowMeeting(false);
   };
+
   const handleConfirm = () => {
-    // console.log(data);
+    if (!socket) return;
     socket.emit("accept meeting", {
       meetingId: data.meetingId,
       userId: user._id,
@@ -100,15 +176,18 @@ const Chat = () => {
     window.open("/meeting2/" + data.meetingId, "_blank");
     setShowMeeting(false);
   };
+
   useEffect(() => {
     if (!id) return;
     axiosClient.get("/info-user/" + id).then((res) => {
       const data = res.data.data;
-      // console.log("data", data);
       setUser(data);
     });
   }, [id]);
+
   useEffect(() => {
+    if (!socket) return;
+
     const handleNotify = (data) => {
       setData(data);
       setShowMeeting(true);
@@ -117,8 +196,58 @@ const Chat = () => {
     socket.on("notify", handleNotify);
 
     // Clean up the effect
-    return () => socket.off("notify", handleNotify);
-  }, []); // Empty dependency array means this effect runs once on mount and clean up on unmount
+    return () => {
+      if (socket) {
+        socket.off("notify", handleNotify);
+      }
+    };
+  }, [socket]);
+
+  // Ping server mỗi 30 giây để giữ kết nối
+  useEffect(() => {
+    if (!socket) return;
+
+    const pingInterval = setInterval(() => {
+      if (socket?.connected) {
+        console.log("Sending ping to server...");
+        socket.emit("ping");
+      } else if (socket) {
+        console.log("Socket not connected, reconnecting...");
+        socket.connect();
+      }
+    }, 30000);
+
+    // Nhận pong từ server
+    socket.on("pong", () => {
+      console.log("Received pong from server, connection is alive");
+    });
+
+    return () => {
+      clearInterval(pingInterval);
+      if (socket) {
+        socket.off("pong");
+      }
+    };
+  }, [socket]);
+
+  // Thêm thông báo lỗi khi không thể kết nối
+  if (socketError) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <div className="text-center">
+          <h4>Không thể kết nối đến server chat</h4>
+          <p>Vui lòng kiểm tra kết nối mạng và làm mới trang.</p>
+          <button
+            className="btn btn-primary"
+            onClick={() => window.location.reload()}
+          >
+            Làm mới trang
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Tab.Container id="list-group-tabs-example" defaultActiveKey={id}>
       <Container className="w-100 m-0">

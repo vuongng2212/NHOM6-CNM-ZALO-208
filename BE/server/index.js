@@ -59,6 +59,13 @@ mongoose
           console.log(err);
         }
       });
+
+      // Xử lý ping từ client
+      socket.on("ping", () => {
+        console.log("Received ping from client, sending pong");
+        socket.emit("pong");
+      });
+
       socket.on("join chat", (room, userId) => {
         userId = JSON.parse(userId);
         socket.join(room);
