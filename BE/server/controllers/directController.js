@@ -7,6 +7,9 @@ const Message = require('../models/message');
 const Group = require('../models/group');
 const GroupDetail = require('../models/groupDetail');
 
+// lấy thông tin tất cả các cuộc trò chuyện của user (cả direct và group)
+//Thông tin cơ bản (tên, avatar)Tin nhắn cuối cùngSố tin nhắn chưa đọcTrạng thái online
+//Lấy thông tin chi tiết của một cuộc trò chuyện trực tiếp (1-1) theo id.
 const getDirect = async (req, res) => {
     const id = req.params.id;
 
@@ -22,7 +25,7 @@ const getDirect = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
-
+//Lấy tất cả các cuộc trò chuyện 1-1 của người dùng hiện tại (đã xác thực).
 const getDirects = async (req, res) => {
     const userId = req.user.id;
     const user = await User.findById(userId);
@@ -34,6 +37,10 @@ const getDirects = async (req, res) => {
     };
   }
 
+
+///Lấy tổng quan các đoạn chat mà người dùng tham gia (gồm:
+// các đoạn chat cá nhân (direct) và
+// các nhóm (group)), để hiển thị ở giao diện danh sách chat (chat list).
 const getInfoChatItem = async (req, res) => {
     try{
         const userId = req.user.id;
@@ -57,7 +64,7 @@ const getInfoChatItem = async (req, res) => {
 
         const [directsResult, groupsResult] = await Promise.allSettled([
              Promise.all(directs.map(async (direct) => {
-                const chatRoom = await ChatRoom.findById(direct.chatRoomId);
+                const chatRoom = await ChatRoom.findById(direct.chatRoomId);//phu tro ben chatroom getchatroom (id)
                 const receiver = await User.findById(direct.receiverId);
                 const lastMessage = await getLastMessage(chatRoom);
                 // const infoChatItem =
@@ -148,10 +155,11 @@ const getInfoChatItem = async (req, res) => {
         }
 
         // Lấy kết quả từ các promise đã giải quyết
+      
         infoChatItems = [...directsResult.value, ...groupsResult.value];
-
+   //sắp xếp thứ tự đoanh chat theo thời gian gần nhất
         infoChatItems.sort((a, b) => {
-            if (a.lastMessage.createAt > b.lastMessage.createAt) {
+            if (a.lastMessage.createAt > b.lastMessage.createAt) { 
                 return 1;
             }
             if (a.lastMessage.createAt < b.lastMessage.createAt) {
@@ -176,10 +184,10 @@ async function getLastMessage(chatRoom) {
     if (!lastMessageId) {
         return {
             text: 'new chat',
-            createAt:  Math.floor((Date.now() - chatRoom.createdAt)/ 1000)// Hoặc bạn có thể trả về một giá trị thời gian mặc định khác
+            createAt:  Math.floor((Date.now() - chatRoom.createdAt)/ 1000)//  có thể trả về một giá trị thời gian mặc định khác
         };
     } else {
-        const message = await Message.findById(lastMessageId);
+        const message = await Message.findById(lastMessageId);//load tin nhắn từ database
         if(message === null){
             return null;
         }
