@@ -263,10 +263,11 @@ const MessageList = (id) => {
   }, [listGroupRef.current, messages]);
 
   useEffect(() => {
-    // Xử lý tin nhắn mới và tránh tạo nhiều listener trùng lặp
-    if (!socket) return; // Kiểm tra socket tồn tại
+    if (!socket) return;
 
     const handleNewMessage = (message) => {
+      if (message.chatRoomId !== id.id) return;
+
       const newMessage = {
         id: message.id,
         content: message.content,
@@ -279,18 +280,15 @@ const MessageList = (id) => {
         media: message.media,
         pin: message.pin,
       };
-      // Sử dụng functional update để tránh stale state
       setMessages((prevMessages) => [...prevMessages, newMessage]);
     };
 
-    // Đăng ký listener một lần duy nhất
     socket.on("message", handleNewMessage);
 
-    // Cleanup khi component unmount hoặc re-render
     return () => {
       socket.off("message", handleNewMessage);
     };
-  }, [socket]); // Chỉ phụ thuộc vào socket, không phụ thuộc vào messages
+  }, [socket, id.id]);
 
   const [showDropdownIndex, setShowDropdownIndex] = useState(null);
   // const pinTableRef = useRef(null);

@@ -41,7 +41,9 @@ const MessageArea = ({ id }) => (
 const ChatItemGroup = (id) => {
   const [chatItems, setChatItems] = useState([]);
   const [id2, setId] = useState();
-  useEffect(() => {
+
+  // Hàm load lại danh sách phòng chat
+  const fetchChatItems = () => {
     axiosClient.get("/info-chat-item").then((res) => {
       const data = res.data.data;
       const chatItems = data.map((item, index) => (
@@ -49,24 +51,27 @@ const ChatItemGroup = (id) => {
       ));
       setChatItems(chatItems);
     });
+  };
 
-    // Chỉ đăng ký event listener khi socket đã tồn tại
+  useEffect(() => {
+    fetchChatItems();
+
     if (!socket) return;
 
-    // Xử lý tin nhắn mới bằng cách cập nhật id để trigger cập nhật danh sách chat
+    // Khi có tin nhắn mới, reload lại danh sách phòng chat
     const handleNewMessage = (message) => {
-      setId(message);
+      setId(message); // vẫn giữ nếu cần
+      fetchChatItems(); // <-- Thêm dòng này để reload
     };
 
     socket.on("message", handleNewMessage);
 
-    // Cleanup khi component unmount
     return () => {
       if (socket) {
         socket.off("message", handleNewMessage);
       }
     };
-  }, [id, socket]); // Thêm socket vào dependencies
+  }, [id, socket]);
 
   return <StyledListGroup>{chatItems}</StyledListGroup>;
 };
@@ -149,7 +154,12 @@ const Chat = () => {
   // Tham gia phòng chat khi có id
   useEffect(() => {
     if (id && socket && socket.connected) {
+      // Rời phòng cũ trước khi join phòng mới
+      if (window.currentChatRoomId && window.currentChatRoomId !== id) {
+        socket.emit("leave chat", window.currentChatRoomId, localStorage.getItem("userId"));
+      }
       socket.emit("join chat", id, localStorage.getItem("userId"));
+      window.currentChatRoomId = id;
       console.log("Joining chat room:", id);
     }
   }, [id, socket?.connected]);

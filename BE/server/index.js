@@ -109,6 +109,7 @@ mongoose
             time: time,
             type: message.type,
             media: message.media,
+            chatRoomId: message.chatRoomId,
           };
 
           // console.log('message', newMessage);

@@ -39,7 +39,8 @@ const InputArea = (chatRoomId) => {
     setReplyMessage(""); // Đặt lại nội dung tin nhắn trả lời
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
     if (isSubmitting) return;
     if (!socket) {
       alert("Không thể kết nối đến server chat. Vui lòng làm mới trang!");
@@ -242,7 +243,7 @@ const InputArea = (chatRoomId) => {
             placeholder="Nhập tin nhắn..."
             className="py-3 me-auto flex-grow-1 border-0"
             style={{ outline: "", boxShadow: "none" }}
-            onEnter={handleSubmit}
+            onEnter={() => handleSubmit(undefined)}
           />
           <Row
             xs={2}
