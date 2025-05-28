@@ -3,6 +3,7 @@ const ChatRoom = require("../models/chatRoom");
 const User = require("../models/user")
 const Direct = require("../models/direct");
 const Group = require("../models/group");
+const GroupDetail = require('../models/groupDetail');
 
 const ApiCode = require("../utils/apicode");
 const apiCode = new ApiCode();
@@ -86,6 +87,14 @@ const getMessages = async (req, res) => {
         direct.unreadMessageCount = 0;
         await direct.save();
       }
+      if (group) {
+        // Reset unreadMessageCount về 0 cho user hiện tại
+        const groupDetail = await GroupDetail.findOne({ groupId: group._id, userId: req.user.id });
+        if (groupDetail) {
+          groupDetail.unreadMessageCount = 0;
+          await groupDetail.save();
+        }
+      }
       return res.status(200).json(apiCode.success(messageList, 'Get Messages Success'));
     }
   }catch(error){
@@ -149,7 +158,7 @@ const sendMessage = async (req, res) => {
   // Tìm phòng chat tương ứng để cập nhật danh sách tin nhắn
   const chatRoom = await ChatRoom.findById(chatRoomId);
   chatRoom.messages.push(message._id);        // Thêm ID tin nhắn vào mảng messages của phòng chat
-  chatRoom.lastMessage = message._id;         // Cập nhật tin nhắn cuối cùng của phòng
+  chatRoom.lastMessage = message._id;         // LUÔN cập nhật tin nhắn cuối cùng của phòng (cả nhóm và 1-1)
   // Nếu đây là direct chat, tăng số tin chưa đọc
   if (direct) {
     direct.unreadMessageCount += 1;           // Tăng số lượng tin chưa đọc cho phía người nhận
@@ -157,7 +166,16 @@ const sendMessage = async (req, res) => {
   }
   // Nếu đây là nhóm, chỉ cần lưu lại
   if (group) {
-    await group.save(); // Trong đoạn này bạn chưa xử lý unread cho group, nhưng bạn có thể mở rộng sau
+    // Lấy tất cả GroupDetail của nhóm này
+    const groupDetails = await GroupDetail.find({ groupId: group._id });
+    for (const groupDetail of groupDetails) {
+      // Tìm userId của groupDetail (bạn cần lưu userId trong GroupDetail khi tạo nhóm)
+      // Giả sử bạn có trường userId trong GroupDetail, nếu chưa có thì cần bổ sung!
+      if (groupDetail.userId && groupDetail.userId.toString() !== req.user.id.toString()) {
+        groupDetail.unreadMessageCount += 1;
+        await groupDetail.save();
+      }
+    }
   }
   await chatRoom.save();
   return res.status(200).json(apiCode.success(message, 'Send Message Success'));
@@ -207,7 +225,7 @@ const sendMedia = async (req, res) => {
       const messages = await Message.insertMany(newMessages);
       const chatRoom = await ChatRoom.findById(chatRoomId);
       chatRoom.messages.push(...messages.map(message => message._id));
-      chatRoom.lastMessage = messages[messages.length - 1]._id;
+      chatRoom.lastMessage = messages[messages.length - 1]._id; // LUÔN cập nhật tin nhắn cuối cùng của phòng (cả nhóm và 1-1)
       await chatRoom.save();
       return res.status(200).json(apiCode.success(messages, 'Send Media Success'));
   } catch (error) {
