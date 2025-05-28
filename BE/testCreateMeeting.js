@@ -1,4 +1,6 @@
-//auth token we will use to generate a meeting and connect to it
+// Test trực tiếp không cần import file ngoài
+
+// auth token we will use to generate a meeting and connect to it
 const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiIwNWYyODUzYi1jNTIzLTQ4ZDQtOWFjOS1hNmYzMGY1NjVkYzkiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTc0ODI4MTkxMiwiZXhwIjoxNzQ4ODg2NzEyfQ.XoE5HzQGszTLfangc0IPneHIypOPdsnL5OrZ966fSqg";
 
 // API call to create meeting
@@ -23,6 +25,14 @@ const createMeeting = async () => {
   }
 };
 
-module.exports = {
-  createMeeting,
+// Hàm test
+const testCreateMeeting = async () => {
+  try {
+    const roomId = await createMeeting();
+    console.log(" Tạo phòng thành công. roomId:", roomId);
+  } catch (err) {
+    console.error(" Lỗi khi tạo phòng:", err.message);
+  }
 };
+
+testCreateMeeting();
