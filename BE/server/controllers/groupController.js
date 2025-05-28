@@ -180,16 +180,6 @@ const createGroup = async (req, res) => {
     // console.log(newGroup);
 
     await newGroup.save();
-    const newGroupDetail = new GroupDetail({
-      groupId: newGroup._id,
-      isPinned:false,
-      isMuted:false,
-      isDeleted:false,
-      isArchived:false,
-      unreadMessageCount:0
-    })
-      // Thêm GroupDetail vào từng thành viên
-    await newGroupDetail.save()
     members.push(ownerId)
     // Duyệt qua mỗi thành viên trong mảng members bằng vòng lặp for
     for (let i = 0; i < members.length; i++) {
@@ -200,8 +190,19 @@ const createGroup = async (req, res) => {
 
           // Kiểm tra xem user có tồn tại không
           if (user) {
-              // Nếu user tồn tại, thêm groupId vào field groupId của user
-              user.groupDetails.push(newGroupDetail);
+              // Tạo GroupDetail mới cho từng thành viên
+              const newGroupDetail = new GroupDetail({
+                groupId: newGroup._id,
+                userId: memberId, // Gán userId cho từng thành viên
+                isPinned: false,
+                isMuted: false,
+                isDeleted: false,
+                isArchived: false,
+                unreadMessageCount: 0
+              });
+              await newGroupDetail.save();
+              // Nếu user tồn tại, thêm GroupDetail ID vào field groupDetails của user
+              user.groupDetails.push(newGroupDetail._id);
 
               // Lưu lại thông tin người dùng sau khi cập nhật
               await user.save();
