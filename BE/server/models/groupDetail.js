@@ -25,6 +25,10 @@ const GroupDetailSchema = new Schema({
     unreadMessageCount: {
         type: Number,
         default: 0
+    },
+    userId: {
+        type: Types.ObjectId,
+        ref: 'User'
     }
   });
 
