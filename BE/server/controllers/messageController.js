@@ -129,31 +129,41 @@ const searchMessages = async (req, res) => {
 };
 
 const sendMessage = async (req, res) => {
+  // Lấy dữ liệu từ client gửi lên
   const { chatRoomId, content, reply } = req.body.data;
+  // tải lại model ChatRoom 
   const ChatRoom = require('../models/chatRoom');
+  // Kiểm tra đây là cuộc trò chuyện trực tiếp (Direct) hay nhóm (Group)
   const direct = await Direct.findOne({ receiverId: { $eq: req.user.id }, chatRoomId: chatRoomId });
-  const group = await Group.findOne({chatRoomId: chatRoomId}) || null
-
+  const group = await Group.findOne({ chatRoomId: chatRoomId }) || null;
+  // Tạo một tin nhắn mới
   const newMessage = new Message({
-    senderID: req.user.id,
-    content: content,
-    reply: reply
+    senderID: req.user.id,     // Người gửi là người đang đăng nhập
+    content: content,          // Nội dung tin nhắn được nhập từ người dùng
+    reply: reply               // Nếu có đang trả lời tin nhắn nào, đây là ID của tin gốc
+                               // Nếu không reply thì giá trị này sẽ là null hoặc undefined
   });
-  console.log(newMessage);
+  console.log(newMessage); // In ra để kiểm tra message mới (debug)
+  // Lưu tin 
   const message = await newMessage.save();
+  // Tìm phòng chat tương ứng để cập nhật danh sách tin nhắn
   const chatRoom = await ChatRoom.findById(chatRoomId);
-  chatRoom.messages.push(message._id);
-  chatRoom.lastMessage = message._id;
+  chatRoom.messages.push(message._id);        // Thêm ID tin nhắn vào mảng messages của phòng chat
+  chatRoom.lastMessage = message._id;         // Cập nhật tin nhắn cuối cùng của phòng
+  // Nếu đây là direct chat, tăng số tin chưa đọc
   if (direct) {
-    direct.unreadMessageCount += 1;
-    await direct.save();
+    direct.unreadMessageCount += 1;           // Tăng số lượng tin chưa đọc cho phía người nhận
+    await direct.save();                      // Lưu lại thay đổi
   }
-  if(group) {
-    await group.save()
+  // Nếu đây là nhóm, chỉ cần lưu lại
+  if (group) {
+    await group.save(); // Trong đoạn này bạn chưa xử lý unread cho group, nhưng bạn có thể mở rộng sau
   }
   await chatRoom.save();
   return res.status(200).json(apiCode.success(message, 'Send Message Success'));
 };
+
+
 const sendMedia = async (req, res) => {
   const media  = req.files;
   const { chatRoomId, content } = req.body;
