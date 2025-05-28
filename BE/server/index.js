@@ -212,9 +212,17 @@ io.on("connection", (socket) => {
     // Logic accept meeting, optional
   });
 
+    // Nhận request gọi nhóm từ client
+  socket.on("call-group", ({ chatRoomId, meetingId, caller }) => {
+    console.log(`Group call from ${caller} to room ${chatRoomId}`);
+    // Gửi incomingCall tới tất cả thành viên trong room chatRoomId
+    io.to(chatRoomId).emit("incomingCall", { meetingId, caller });
+  });
+
   socket.on("decline", ({ caller }) => {
     socket.to(caller).emit("decline");
   });
+
 });
 
 

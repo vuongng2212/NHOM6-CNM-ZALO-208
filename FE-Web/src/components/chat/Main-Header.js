@@ -111,6 +111,7 @@ const handleCamera = async () => {
   }
 };
 
+
   const [show, setShow] = useState(false);
   const [show2, setShow2] = useState(false);
   const [userInfo, setUserInfo] = useState({});
