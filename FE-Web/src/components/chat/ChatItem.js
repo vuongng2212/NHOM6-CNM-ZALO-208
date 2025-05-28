@@ -53,10 +53,31 @@ const ChatItem = (item) => {
         />
       </DivImage>
       <div className="me-auto">
-        <div className="fw-bold">{item.data.name}</div>
+        <div
+          className="fw-bold"
+          style={{
+            fontWeight: item.data.unreadMessageCount > 0 ? "bold" : "normal",
+            color: item.data.unreadMessageCount > 0 ? "#0b7c82" : "inherit"
+          }}
+        >
+          {item.data.name}
+          {item.data.unreadMessageCount > 0 && (
+            <span
+              style={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                background: "red",
+                borderRadius: "50%",
+                marginLeft: 8,
+                verticalAlign: "middle"
+              }}
+            ></span>
+          )}
+        </div>
         <div
           style={{
-            fontWeight: item.data.unreadMessageCount === 0 ? "0" : "600",
+            fontWeight: item.data.unreadMessageCount > 0 ? "600" : "400",
           }}
         >
           {lastMessage.text.length > 12
