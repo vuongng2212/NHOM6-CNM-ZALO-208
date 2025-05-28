@@ -169,7 +169,7 @@ function Controls() {
       <Button onClick={() => toggleMic() }>Toggle Mic</Button>
       <Button onClick={() => toggleWebcam()}>Toggle Camera</Button>
 
-      <Button
+      {/* <Button
         onClick={() => {
           //Start the HLS in SPOTLIGHT mode and PIN as
           //priority so only speakers are visible in the HLS stream
@@ -187,8 +187,8 @@ function Controls() {
         }}
       >
         Start HLS
-      </Button>
-      <Button onClick={() => stopHls()}>Stop HLS</Button>
+      </Button> */}
+      
     </div>
   );
 }
@@ -256,7 +256,7 @@ const MeetingView =  ()=> {
       config={{
         meetingId,
         micEnabled: true,
-        webcamEnabled: false,
+        webcamEnabled: true,
         name: "C.V. Raman",
       }}
       token={authToken}
