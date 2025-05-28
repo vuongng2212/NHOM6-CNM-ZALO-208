@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+  import React, { useState, useEffect } from "react";
 import {
   ListGroup,
   Image,
@@ -16,6 +16,9 @@ import { useNavigate } from "react-router-dom";
 
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // id: props
 const Header = (id) => {
@@ -77,19 +80,37 @@ const Header = (id) => {
     return days + " days ago";
   }
 
-  const handleCamera = () => {
-    if (meetingId) {
-      socket.emit("notify", { meetingId: meetingId, userId: user._id });
-      window.open("/meeting/" + meetingId, "_blank");
-      return;
+const handleCamera = async () => {
+  try {
+    // Gửi request POST để tạo meeting
+    const res = await axiosClient.post('/create-meeting');
+    console.log('Phản hồi từ create-meeting:', res);
+
+    // Lấy roomId từ phản hồi (dựa trên cấu trúc thực tế của API)
+    const meetingId = res?.data?.roomId;
+    if (!meetingId) {
+      throw new Error('Không lấy được ID phòng họp');
     }
-    // socket.emit('call', { chatRoomId: id.id });
-    // socket.on('call', (meetingId) => {
-    //     console.log('data', meetingId);
-    //     setMeetingId(meetingId);
-    //     window.open('/meeting/' + meetingId, '_blank');
-    // });
-  };
+
+    // Gửi thông báo qua socket
+    socket.emit('notify', {
+      meetingId,
+      userId: user._id,
+      caller: user.name || 'Ai đó',
+    });
+
+    // Mở tab mới với URL phòng họp
+    window.open(`/meeting/${meetingId}`, '_blank');
+  } catch (err) {
+    // Ghi log chi tiết lỗi
+    console.error('Lỗi khi tạo phòng họp hoặc gửi thông báo:', err);
+    if (err.response) {
+      console.error('Chi tiết lỗi từ server:', err.response.data, err.response.status);
+    }
+    alert('Không thể bắt đầu cuộc gọi. Vui lòng thử lại!');
+  }
+};
+
   const [show, setShow] = useState(false);
   const [show2, setShow2] = useState(false);
   const [userInfo, setUserInfo] = useState({});
@@ -109,14 +130,57 @@ const Header = (id) => {
   };
   const handleClose = () => setShow(false);
   const handleClose2 = () => setShow2(false);
-  const handleBt = async (groupId) => {
-    // console.log(groupId);
+  // const handleBt = async (groupId) => {
+  //   // console.log(groupId);
+  //   const res = await axiosClient.delete("/delete-group/" + groupId);
+  //   console.log(res);
+  //   if (res.status === 200) {
+  //     navigate("/chat");
+  //   }
+  // };
+
+  // const handleBt = async (groupId) => {
+  //   try {
+  //     const res = await axiosClient.delete("/delete-group/" + groupId);
+  //     if (res.data.success) {
+  //       navigate("/chat");
+  //     } else {
+  //       console.error("Không thể xóa nhóm:", res.data.error);
+  //       // Hiển thị thông báo lỗi cho người dùng
+  //       alert("Không thể xóa nhóm: " + (res.data.error || "Lỗi không xác định"));
+  //     }
+  //   } catch (error) {
+  //     console.error("Lỗi khi xóa nhóm:", error);
+  //     // Hiển thị thông báo lỗi cho người dùng
+  //     alert("Đã xảy ra lỗi khi xóa nhóm. Vui lòng thử lại sau.");
+  //   }
+  // };
+  // Cập nhật hàm handleBt
+const handleBt = async (groupId) => {
+  try {
     const res = await axiosClient.delete("/delete-group/" + groupId);
-    console.log(res);
-    if (res.status === 200) {
-      navigate("/chat");
+    if (res.data.success) {
+      toast.success("Xóa nhóm thành công!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      setTimeout(() => {
+        navigate("/chat");
+      }, 1000); // Chờ 1 giây để hiển thị toast rồi chuyển trang
+    } else {
+      toast.error(res.data.error || "Không thể xóa nhóm", {
+        position: "top-right",
+        autoClose: 3000,
+      });
     }
-  };
+  } catch (error) {
+    toast.error("Đã xảy ra lỗi khi xóa nhóm", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+    console.error("Lỗi khi xóa nhóm:", error);
+  }
+};
   // useEffect(() => {
   // // if(!meetingId){
   // //     setMeetingId("meetingId");
@@ -126,35 +190,200 @@ const Header = (id) => {
   // //         setMeetingId(meetingId);
   // //     });
   // // }}, []);
-  const handleSetAdmin = async (id, groupId) => {
-    // console.log(id);
-    await axiosClient.post("/grant-permission", {
-      userId: id,
-      groupId: groupId,
-      role: "admin",
-    });
-    // console.log(res);
-    //reload page:
-    window.location.reload();
+  // const handleSetAdmin = async (id, groupId) => {
+  //   // console.log(id);
+  //   await axiosClient.post("/grant-permission", {
+  //     userId: id,
+  //     groupId: groupId,
+  //     role: "admin",
+  //   });
+  //   // console.log(res);
+  //   //reload page:
+  //   window.location.reload();
+  // };
+  const handleSetAdmin = async (userId, groupId) => {
+    try {
+      await axiosClient.post("/grant-permission", {
+        userId,
+        groupId, 
+        role: "admin"
+      });
+      toast.success("Đã đặt làm admin thành công!");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      toast.error("Lỗi khi đặt quyền admin");
+      console.error("Lỗi:", error);
+    }
   };
-  const handleSetMember = async (id, groupId) => {
-    // console.log(id);
-    await axiosClient.post("/grant-permission", {
-      userId: id,
-      groupId: groupId,
-      role: "member",
-    });
-    // console.log(res);
-    //reload page:
-    window.location.reload();
+  // const handleSetMember = async (id, groupId) => {
+  //   // console.log(id);
+  //   await axiosClient.post("/grant-permission", {
+  //     userId: id,
+  //     groupId: groupId,
+  //     role: "member",
+  //   });
+  //   // console.log(res);
+  //   //reload page:
+  //   window.location.reload();
+  // };
+
+  const handleSetMember = async (userId, groupId) => {
+    try {
+      await axiosClient.post("/grant-permission", {
+        userId,
+        groupId,
+        role: "member"
+      });
+      toast.success("Đã chuyển về thành viên thường thành công!");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      toast.error("Lỗi khi thay đổi quyền thành viên");
+      console.error("Lỗi:", error);
+    }
   };
+  // const handleSetMember = async (userId, groupId) => {
+  //   try {
+  //     const member = userInfo.members.find(m => m.id === userId);
+  //     const memberName = member?.displayName || 'thành viên';
+      
+  //     const res = await axiosClient.post("/grant-permission", {
+  //       userId: userId,
+  //       groupId: groupId,
+  //       role: "member",
+  //     });
+  
+  //     if (res.data.success) {
+  //       toast.success(`Đã chuyển ${memberName} về thành viên thường thành công!`, {
+  //         position: "top-right",
+  //         autoClose: 3000,
+  //       });
+        
+  //       // Cập nhật lại thông tin nhóm
+  //       const updatedGroup = await axiosClient.get("/profile-group/" + groupId);
+  //       setUserInfo(updatedGroup.data.data);
+        
+  //       // Reload sau 1 giây
+  //       setTimeout(() => {
+  //         window.location.reload();
+  //       }, 1000);
+  //     } else {
+  //       toast.error(res.data.message || "Thay đổi quyền không thành công");
+  //     }
+  //   } catch (error) {
+  //     console.error("Lỗi khi thay đổi quyền:", error);
+  //     toast.error(error.response?.data?.message || "Đã xảy ra lỗi khi thay đổi quyền");
+  //   }
+  // };
+  // const handleRemove = async (userId) => {
+  //   const res = await axiosClient.post("/groups/" + id.id + "/delete-member", {
+  //     userId: userId,
+  //   });
+  //   // console.log(res);
+  //   window.location.reload();
+  // };
+  // const handleRemove = async (userId) => {
+  //   try {
+  //     const userName = userInfo.members.find(m => m.id === userId)?.displayName || 'thành viên';
+      
+  //     const confirm = window.confirm(`Bạn chắc chắn muốn xóa ${userName} khỏi nhóm?`);
+  //     if (!confirm) return;
+  
+  //     const res = await axiosClient.post("/groups/" + id.id + "/delete-member", {
+  //       userId: userId,
+  //     });
+  
+  //     if (res.data.success) {
+  //       // Hiển thị thông báo thành công
+  //       toast.success(`Đã xóa ${userName} khỏi nhóm thành công!`, {
+  //         position: "top-right",
+  //         autoClose: 3000,
+  //       });
+        
+  //       // Cập nhật lại thông tin nhóm
+  //       const updatedGroup = await axiosClient.get("/profile-group/" + user._id);
+  //       setUserInfo(updatedGroup.data.data);
+        
+  //       // Reload sau 1 giây để thấy thay đổi
+  //       setTimeout(() => {
+  //         window.location.reload();
+  //       }, 1000);
+  //     } else {
+  //       toast.error(res.data.message || "Xóa thành viên không thành công", {
+  //         position: "top-right",
+  //         autoClose: 3000,
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Lỗi khi xóa thành viên:", error);
+  //     toast.error(error.response?.data?.message || "Đã xảy ra lỗi khi xóa thành viên", {
+  //       position: "top-right",
+  //       autoClose: 3000,
+  //     });
+  //   }
+  // };
   const handleRemove = async (userId) => {
+  try {
+    // Lấy tên thành viên để hiển thị thông báo
+    const member = userInfo.members.find(m => m.id === userId);
+    const memberName = member ? member.displayName : 'thành viên';
+
+    // Hiển thị thông báo xác nhận
+    toast.info(
+      <div>
+        <p>Bạn chắc chắn muốn xóa {memberName}?</p>
+        <div className="d-flex justify-content-around mt-2">
+          <button 
+            className="btn btn-sm btn-danger"
+            onClick={() => {
+              toast.dismiss();
+              confirmRemove(userId, memberName);
+            }}
+          >
+            Xóa
+          </button>
+          <button 
+            className="btn btn-sm btn-secondary"
+            onClick={() => toast.dismiss()}
+          >
+            Hủy
+          </button>
+        </div>
+      </div>,
+      {
+        autoClose: false,
+        closeButton: false,
+        position: 'top-center',
+      }
+    );
+    
+  } catch (error) {
+    console.error("Lỗi khi xóa thành viên:", error);
+    toast.error("Đã xảy ra lỗi khi xóa thành viên");
+  }
+};
+
+// Hàm xác nhận xóa
+const confirmRemove = async (userId, memberName) => {
+  try {
     const res = await axiosClient.post("/groups/" + id.id + "/delete-member", {
       userId: userId,
     });
-    // console.log(res);
-    window.location.reload();
-  };
+
+    if (res.data.success) {
+      toast.success(`Đã xóa ${memberName} khỏi nhóm thành công!`);
+      
+      // Cập nhật lại danh sách thành viên
+      const updatedGroup = await axiosClient.get("/profile-group/" + user._id);
+      setUserInfo(updatedGroup.data.data);
+      
+    } else {
+      toast.error(res.data.message || "Xóa thành viên không thành công");
+    }
+  } catch (error) {
+    toast.error("Đã xảy ra lỗi khi xóa thành viên");
+    console.error("Lỗi khi xóa thành viên:", error);
+  }
+};
   const handleAddMember = async () => {
     const res = await axiosClient.get("/info-add-member/" + user._id);
     // console.log(res);
@@ -164,14 +393,51 @@ const Header = (id) => {
   };
   const [forwarded, setForwarded] = useState([]);
 
-  const handleInvite = async (user, index) => {
-    const res = await axiosClient.post("/groups/" + id.id + "/add-member", {
-      userId: user._id,
-    });
-    // console.log(res);
-    setForwarded([...forwarded, index]);
-  };
+  // const handleInvite = async (user, index) => {
+  //   const res = await axiosClient.post("/groups/" + id.id + "/add-member", {
+  //     userId: user._id,
+  //   });
+  //   // console.log(res);
+  //   setForwarded([...forwarded, index]);
+  // };
 
+  const handleInvite = async (user, index) => {
+    try {
+      const res = await axiosClient.post("/groups/" + id.id + "/add-member", {
+        userId: user._id,
+      });
+      
+      // Kiểm tra nếu thành công (status code 2xx)
+      if (res.status >= 200 && res.status < 300) {
+        // Hiển thị thông báo thành công
+        toast.success(`Đã thêm ${user.displayName} vào nhóm thành công!`, {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        
+        // Cập nhật UI
+        setForwarded([...forwarded, index]);
+        
+        // Nếu bạn muốn làm mới danh sách thành viên
+        const updatedGroup = await axiosClient.get("/info-user/" + id.id);
+        setUser(updatedGroup.data.data);
+      } else {
+        // Hiển thị thông báo lỗi từ server nếu có
+        toast.error(res.data.message || "Thêm thành viên không thành công", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi khi thêm thành viên:", error);
+      
+      // Hiển thị thông báo lỗi
+      toast.error(error.response?.data?.message || "Đã xảy ra lỗi khi thêm thành viên", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+  };
   const handleOutgroup = async () => {
     const res = await axiosClient.post("/groups/" + id.id + "/outGroup");
     // console.log(res);
@@ -603,7 +869,23 @@ const Header = (id) => {
           </Button>
         </Modal.Footer>
       </Modal>
+      <>
+    {/* ... các code khác ... */}
+    <ToastContainer 
+      position="top-right"
+      autoClose={3000}
+      hideProgressBar={false}
+      newestOnTop={false}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+    />
+    
+  </>
     </>
+    
   );
 };
 

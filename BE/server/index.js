@@ -21,6 +21,20 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.use(router);
+// Thêm endpoint POST /api/create-meeting
+app.post("/api/create-meeting", async (req, res) => {
+  try {
+    const meetingId = await createMeeting(); // Gọi hàm createMeeting từ ./api
+    if (!meetingId) {
+      return res.status(500).json({ error: "Không thể tạo phòng họp" });
+    }
+    res.json({ roomId: meetingId }); // Trả về roomId để khớp với frontend
+  } catch (error) {
+    console.error("Lỗi khi tạo phòng họp:", error);
+    res.status(500).json({ error: "Lỗi server khi tạo phòng họp" });
+  }
+});
+
 
 // Khởi chạy app
 mongoose
@@ -180,7 +194,32 @@ mongoose
         console.log("Decline meeting", data);
         io.to(data.userId).emit("decline", data);
       });
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("setup", (userId) => {
+    socket.join(userId);
+  });
+
+  socket.on("notify", ({ meetingId, userId, caller }) => {
+    console.log(`${caller} is calling user ${userId} in meeting ${meetingId}`);
+    socket.to(userId).emit("incomingCall", { meetingId, caller });
+  });
+
+  socket.on("accept meeting", ({ meetingId }) => {
+    // Logic accept meeting, optional
+  });
+
+  socket.on("decline", ({ caller }) => {
+    socket.to(caller).emit("decline");
+  });
+});
+
+
     });
+
+
   })
   .catch((err) => console.log(err));
 

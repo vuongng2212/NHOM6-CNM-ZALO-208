@@ -131,14 +131,11 @@ const searchMessages = async (req, res) => {
 const sendMessage = async (req, res) => {
   // Lấy dữ liệu từ client gửi lên
   const { chatRoomId, content, reply } = req.body.data;
-
-  // Tải lại model ChatRoom để chắc chắn không bị lỗi cache model
+  // tải lại model ChatRoom 
   const ChatRoom = require('../models/chatRoom');
-
   // Kiểm tra đây là cuộc trò chuyện trực tiếp (Direct) hay nhóm (Group)
   const direct = await Direct.findOne({ receiverId: { $eq: req.user.id }, chatRoomId: chatRoomId });
   const group = await Group.findOne({ chatRoomId: chatRoomId }) || null;
-
   // Tạo một tin nhắn mới
   const newMessage = new Message({
     senderID: req.user.id,     // Người gửi là người đang đăng nhập
@@ -146,32 +143,23 @@ const sendMessage = async (req, res) => {
     reply: reply               // Nếu có đang trả lời tin nhắn nào, đây là ID của tin gốc
                                // Nếu không reply thì giá trị này sẽ là null hoặc undefined
   });
-
   console.log(newMessage); // In ra để kiểm tra message mới (debug)
-
-  // Lưu tin nhắn mới vào MongoDB
+  // Lưu tin 
   const message = await newMessage.save();
-
   // Tìm phòng chat tương ứng để cập nhật danh sách tin nhắn
   const chatRoom = await ChatRoom.findById(chatRoomId);
   chatRoom.messages.push(message._id);        // Thêm ID tin nhắn vào mảng messages của phòng chat
   chatRoom.lastMessage = message._id;         // Cập nhật tin nhắn cuối cùng của phòng
-
   // Nếu đây là direct chat, tăng số tin chưa đọc
   if (direct) {
     direct.unreadMessageCount += 1;           // Tăng số lượng tin chưa đọc cho phía người nhận
     await direct.save();                      // Lưu lại thay đổi
   }
-
   // Nếu đây là nhóm, chỉ cần lưu lại
   if (group) {
     await group.save(); // Trong đoạn này bạn chưa xử lý unread cho group, nhưng bạn có thể mở rộng sau
   }
-
-  // Lưu lại phòng chat sau khi cập nhật tin nhắn mới
   await chatRoom.save();
-
-  // Trả về response thành công với tin nhắn mới
   return res.status(200).json(apiCode.success(message, 'Send Message Success'));
 };
 

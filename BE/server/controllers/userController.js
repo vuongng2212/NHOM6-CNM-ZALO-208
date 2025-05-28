@@ -1003,6 +1003,7 @@ async function getUserProfile(req, res) {
       return value.toString();
     });
     console.log(a);
+       // Đếm số group chung
     const countCommonGroup = groupIds.filter((value) =>
       a.includes(value.toString())
     ).length;
