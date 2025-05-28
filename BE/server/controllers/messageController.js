@@ -386,6 +386,128 @@ const unPinMessage = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Gửi vị trí
+const sendLocation = async (req, res) => {
+  try {
+    const { chatRoomId, latitude, longitude, address } = req.body.data;
+    
+    const newMessage = new Message({
+      senderID: req.user.id,
+      type: 'location',
+      location: {
+        latitude,
+        longitude,
+        address
+      }
+    });
+
+    const message = await newMessage.save();
+    
+    // Cập nhật phòng chat
+    const chatRoom = await ChatRoom.findById(chatRoomId);
+    chatRoom.messages.push(message._id);
+    chatRoom.lastMessage = message._id;
+    await chatRoom.save();
+
+    // Cập nhật số tin nhắn chưa đọc
+    const direct = await Direct.findOne({ receiverId: { $eq: req.user.id }, chatRoomId: chatRoomId });
+    if (direct) {
+      direct.unreadMessageCount += 1;
+      await direct.save();
+    }
+
+    return res.status(200).json(apiCode.success(message, 'Send location success'));
+  } catch (error) {
+    console.error('Send location error:', error);
+    return res.status(500).json(apiCode.error('Send location failed'));
+  }
+};
+
+// Tạo vote
+const createVote = async (req, res) => {
+  try {
+    const { chatRoomId, question, options, endTime, isMultipleChoice } = req.body.data;
+    
+    const newMessage = new Message({
+      senderID: req.user.id,
+      type: 'vote',
+      vote: {
+        question,
+        options: options.map(opt => ({
+          text: opt,
+          votes: []
+        })),
+        endTime: endTime ? new Date(endTime) : null,
+        isMultipleChoice
+      }
+    });
+
+    const message = await newMessage.save();
+    
+    // Cập nhật phòng chat
+    const chatRoom = await ChatRoom.findById(chatRoomId);
+    chatRoom.messages.push(message._id);
+    chatRoom.lastMessage = message._id;
+    await chatRoom.save();
+
+    // Cập nhật số tin nhắn chưa đọc
+    const direct = await Direct.findOne({ receiverId: { $eq: req.user.id }, chatRoomId: chatRoomId });
+    if (direct) {
+      direct.unreadMessageCount += 1;
+      await direct.save();
+    }
+
+    return res.status(200).json(apiCode.success(message, 'Create vote success'));
+  } catch (error) {
+    console.error('Create vote error:', error);
+    return res.status(500).json(apiCode.error('Create vote failed'));
+  }
+};
+
+// Bỏ phiếu
+const castVote = async (req, res) => {
+  try {
+    const { messageId, optionIndex } = req.body;
+    
+    const message = await Message.findById(messageId);
+    if (!message || message.type !== 'vote') {
+      return res.status(400).json(apiCode.error('Invalid message or message type'));
+    }
+
+    // Kiểm tra thời gian kết thúc
+    if (message.vote.endTime && new Date() > message.vote.endTime) {
+      return res.status(400).json(apiCode.error('Vote has ended'));
+    }
+
+    // Kiểm tra option index hợp lệ
+    if (optionIndex < 0 || optionIndex >= message.vote.options.length) {
+      return res.status(400).json(apiCode.error('Invalid option'));
+    }
+
+    // Kiểm tra người dùng đã vote chưa
+    const hasVoted = message.vote.options.some(option => 
+      option.votes.some(vote => vote.userId.toString() === req.user.id)
+    );
+
+    if (hasVoted && !message.vote.isMultipleChoice) {
+      return res.status(400).json(apiCode.error('You have already voted'));
+    }
+
+    // Thêm vote
+    message.vote.options[optionIndex].votes.push({
+      userId: req.user.id,
+      votedAt: new Date()
+    });
+
+    await message.save();
+    return res.status(200).json(apiCode.success(message, 'Vote cast successfully'));
+  } catch (error) {
+    console.error('Cast vote error:', error);
+    return res.status(500).json(apiCode.error('Cast vote failed'));
+  }
+};
+
 module.exports = {
   getMessage,
   getMessages,
@@ -398,6 +520,8 @@ module.exports = {
   hideMessage,
   deleteMessage,
   pinMessage,
-  unPinMessage
-
+  unPinMessage,
+  sendLocation,
+  createVote,
+  castVote
 }
