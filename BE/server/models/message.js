@@ -76,6 +76,44 @@ const MessageSchema = new Schema({
     hidedUsers: [{
         type: Schema.Types.Mixed
     }],
+    location: {
+        latitude: {
+            type: Number,
+            default: null
+        },
+        longitude: {
+            type: Number,
+            default: null
+        },
+        address: {
+            type: String,
+            default: ''
+        }
+    },
+    vote: {
+        question: {
+            type: String,
+            default: ''
+        },
+        options: [{
+            text: String,
+            votes: [{
+                userId: Types.ObjectId,
+                votedAt: {
+                    type: Date,
+                    default: Date.now
+                }
+            }]
+        }],
+        endTime: {
+            type: Date,
+            default: null
+        },
+        isMultipleChoice: {
+            type: Boolean,
+            default: false
+        }
+    }
 });
 
 module.exports = Mongoose.model('Message', MessageSchema, 'messages');
