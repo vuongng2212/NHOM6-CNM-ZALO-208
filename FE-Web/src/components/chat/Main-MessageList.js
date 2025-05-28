@@ -37,7 +37,7 @@ const StyledListGroup = styled(ListGroup)`
 `;
 
 const MessageBubble = styled.div`
-  max-width: 80%;
+  max-width: 100%;
   padding: 10px 14px;
   border-radius: 18px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
