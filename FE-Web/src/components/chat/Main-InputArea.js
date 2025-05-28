@@ -239,7 +239,10 @@ const InputArea = (chatRoomId) => {
         >
           <InputEmoji
             value={message}
-            onChange={setMessage}
+            onChange={(val) => {
+              console.log("Input value:", val);
+              setMessage(val);
+            }}
             placeholder="Nhập tin nhắn..."
             className="py-3 me-auto flex-grow-1 border-0"
             style={{ outline: "", boxShadow: "none" }}
