@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'chat-backend',
-      script: 'server.js', // hoặc app.js, index.js tùy file chính của bạn
-      cwd: '/home/ubuntu/chat-app/backend',
+      script: './server/index.js',
+      cwd: '/home/ubuntu/chat-app/BE',
       env: {
         NODE_ENV: 'production',
         PORT: 3000
