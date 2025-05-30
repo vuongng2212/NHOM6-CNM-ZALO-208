@@ -74,6 +74,9 @@ const {
   deleteMessage,
   pinMessage,
   unPinMessage,
+  sendLocation,
+  createVote,
+  castVote,
 } = require("../controllers/messageController");
 const {
   sendResetPasswordOTP,
@@ -168,5 +171,10 @@ router.patch("/forward-message/:id", authenticateJWT, forwardMessage);
 router.delete("/message/:id", authenticateJWT, deleteMessage);
 router.patch("/pin-message/:id", authenticateJWT, pinMessage);
 router.patch("/unpin-message/:id", authenticateJWT, unPinMessage);
+
+// Thêm các route từ message.js
+router.post("/send-location", authenticateJWT, sendLocation);
+router.post("/create-vote", authenticateJWT, createVote);
+router.post("/cast-vote", authenticateJWT, castVote);
 
 module.exports = router;

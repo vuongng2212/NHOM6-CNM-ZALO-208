@@ -14,9 +14,6 @@ import InputArea from "../components/chat/Main-InputArea";
 import ConfirmDialog from "../components/chat/DialogMeeting";
 import { useParams } from "react-router-dom";
 import io from "socket.io-client";
-import { Modal, Button } from 'react-bootstrap';
-import ringSound from "../assets/ring.mp3";
-
 const ENDPOINT = process.env.REACT_APP_API_URL;
 let socket = null; // Khởi tạo socket là null
 
@@ -44,9 +41,7 @@ const MessageArea = ({ id }) => (
 const ChatItemGroup = (id) => {
   const [chatItems, setChatItems] = useState([]);
   const [id2, setId] = useState();
-
-  // Hàm load lại danh sách phòng chat
-  const fetchChatItems = () => {
+  useEffect(() => {
     axiosClient.get("/info-chat-item").then((res) => {
       const data = res.data.data;
       const chatItems = data.map((item, index) => (
@@ -54,28 +49,24 @@ const ChatItemGroup = (id) => {
       ));
       setChatItems(chatItems);
     });
-  };
 
-  useEffect(() => {
-    fetchChatItems();
-
+    // Chỉ đăng ký event listener khi socket đã tồn tại
     if (!socket) return;
 
-    // Khi có tin nhắn mới, reload lại danh sách phòng chat
+    // Xử lý tin nhắn mới bằng cách cập nhật id để trigger cập nhật danh sách chat
     const handleNewMessage = (message) => {
-      setId(message); // vẫn giữ nếu cần
-      fetchChatItems(); // <-- Thêm dòng này để reload
+      setId(message);
     };
 
     socket.on("message", handleNewMessage);
 
+    // Cleanup khi component unmount
     return () => {
       if (socket) {
         socket.off("message", handleNewMessage);
       }
     };
-  }, [id, socket]);
-
+  }, [id, socket]); // Thêm socket vào dependencies
 
   return <StyledListGroup>{chatItems}</StyledListGroup>;
 };
@@ -158,12 +149,7 @@ const Chat = () => {
   // Tham gia phòng chat khi có id
   useEffect(() => {
     if (id && socket && socket.connected) {
-      // Rời phòng cũ trước khi join phòng mới
-      if (window.currentChatRoomId && window.currentChatRoomId !== id) {
-        socket.emit("leave chat", window.currentChatRoomId, localStorage.getItem("userId"));
-      }
       socket.emit("join chat", id, localStorage.getItem("userId"));
-      window.currentChatRoomId = id;
       console.log("Joining chat room:", id);
     }
   }, [id, socket?.connected]);
@@ -198,46 +184,24 @@ const Chat = () => {
       setUser(data);
     });
   }, [id]);
-  
 
-  // useEffect(() => {
-  //   if (!socket) return;
+  useEffect(() => {
+    if (!socket) return;
 
-  //   const handleNotify = (data) => {
-  //     setData(data);
-  //     setShowMeeting(true);
-  //   };
+    const handleNotify = (data) => {
+      setData(data);
+      setShowMeeting(true);
+    };
 
-  //   socket.on("notify", handleNotify);
+    socket.on("notify", handleNotify);
 
-  //   // Clean up the effect
-  //   return () => {
-  //     if (socket) {
-  //       socket.off("notify", handleNotify);
-  //     }
-  //   };
-  // }, [socket]);
-useEffect(() => {
-  if (!socket) return;
-
-  // Nhận cuộc gọi (1-1 hoặc nhóm)
-  const handleIncomingCall = ({ meetingId, caller }) => {
-    console.log("[Chat] incomingCall:", meetingId, caller);
-    setData({ meetingId, caller });
-    setShowMeeting(true);
-  };
-
-  socket.on("incomingCall", handleIncomingCall);
-
-  return () => {
-    // Chỉ cleanup nếu socket còn hợp lệ
-    if (socket) {
-      socket.off("incomingCall", handleIncomingCall);
-    }
-  };
-}, []); // chạy 1 lần khi mount
-
-
+    // Clean up the effect
+    return () => {
+      if (socket) {
+        socket.off("notify", handleNotify);
+      }
+    };
+  }, [socket]);
 
   // Ping server mỗi 30 giây để giữ kết nối
   useEffect(() => {
@@ -284,83 +248,32 @@ useEffect(() => {
     );
   }
 
-//   return (
-//     <Tab.Container id="list-group-tabs-example" defaultActiveKey={id}>
-//       <Container className="w-100 m-0">
-//         <FirstColumn>
-//           <ThirdColumn>
-//             <ChatMenu />
-//           </ThirdColumn>
-//           <FourthColumn>
-//             <ChatList id={id} />
-//           </FourthColumn>
-//         </FirstColumn>
-//         <SecondColumn>
-//           <Tab.Content className="h-100">
-//             {id ? <ChatPane eventKey={id} id={id} /> : <div></div>}
-//           </Tab.Content>
-//         </SecondColumn>
-//       </Container>
-//       <ConfirmDialog
-//         show={showMeeting}
-//         handleClose={handleClose}
-//         handleConfirm={handleConfirm}
-//       />
-//     </Tab.Container>
-//   );
-// };
-return (
-  <Tab.Container id="list-group-tabs-example" defaultActiveKey={id}>
-    <Container className="w-100 m-0">
-      <FirstColumn>
-        <ThirdColumn>
-          <ChatMenu />
-        </ThirdColumn>
-        <FourthColumn>
-          <ChatList id={id} />
-        </FourthColumn>
-      </FirstColumn>
-      <SecondColumn>
-        <Tab.Content className="h-100">
-          {id ? <ChatPane eventKey={id} id={id} /> : <div></div>}
-        </Tab.Content>
-      </SecondColumn>
-    </Container>
+  return (
+    <Tab.Container id="list-group-tabs-example" defaultActiveKey={id}>
+      <Container className="w-100 m-0">
+        <FirstColumn>
+          <ThirdColumn>
+            <ChatMenu />
+          </ThirdColumn>
+          <FourthColumn>
+            <ChatList id={id} />
+          </FourthColumn>
+        </FirstColumn>
+        <SecondColumn>
+          <Tab.Content className="h-100">
+            {id ? <ChatPane eventKey={id} id={id} /> : <div></div>}
+          </Tab.Content>
+        </SecondColumn>
+      </Container>
+      <ConfirmDialog
+        show={showMeeting}
+        handleClose={handleClose}
+        handleConfirm={handleConfirm}
+      />
+    </Tab.Container>
+  );
+};
 
-    {/* ----- Modal cuộc gọi đến ----- */}
-{/* ----- Modal cuộc gọi đến ----- */}
-    <Modal
-      show={showMeeting}
-      onHide={handleClose}
-      centered
-      backdrop="static"
-      keyboard={false}
-    >
-      <Modal.Body className="text-center">
-        {/* Chuông đổ */}
-        <audio src={ringSound} autoPlay loop />
-
-        {/* Thông báo ai đang gọi */}
-        {/* <h5 className="mb-3">
-          <i className="bi bi-bell-fill me-2"></i>
-          {data.caller || "Người dùng"} đang gọi bạn
-        </h5> */}
-        <p className="text-muted">Bạn có muốn tham gia cuộc gọi không?</p>
-
-        {/* Nút Chấp nhận / Từ chối */}
-        <div className="d-flex justify-content-center gap-3 mt-3">
-          <Button variant="success" onClick={handleConfirm}>
-            <i className="bi bi-telephone-fill me-1"></i>Chấp nhận
-          </Button>
-          <Button variant="danger" onClick={handleClose}>
-            <i className="bi bi-telephone-x-fill me-1"></i>Từ chối
-          </Button>
-        </div>
-      </Modal.Body>
-    </Modal>
-  </Tab.Container>
-);
-}
 const ChatColStyled = styled(Col)`
   margin: 0;
   padding: 0;

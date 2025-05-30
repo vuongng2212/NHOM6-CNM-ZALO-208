@@ -37,7 +37,7 @@ const StyledListGroup = styled(ListGroup)`
 `;
 
 const MessageBubble = styled.div`
-  max-width: 100%;
+  max-width: 80%;
   padding: 10px 14px;
   border-radius: 18px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -263,11 +263,10 @@ const MessageList = (id) => {
   }, [listGroupRef.current, messages]);
 
   useEffect(() => {
-    if (!socket) return;
+    // Xử lý tin nhắn mới và tránh tạo nhiều listener trùng lặp
+    if (!socket) return; // Kiểm tra socket tồn tại
 
     const handleNewMessage = (message) => {
-      if (message.chatRoomId !== id.id) return;
-
       const newMessage = {
         id: message.id,
         content: message.content,
@@ -280,15 +279,18 @@ const MessageList = (id) => {
         media: message.media,
         pin: message.pin,
       };
+      // Sử dụng functional update để tránh stale state
       setMessages((prevMessages) => [...prevMessages, newMessage]);
     };
 
+    // Đăng ký listener một lần duy nhất
     socket.on("message", handleNewMessage);
 
+    // Cleanup khi component unmount hoặc re-render
     return () => {
       socket.off("message", handleNewMessage);
     };
-  }, [socket, id.id]);
+  }, [socket]); // Chỉ phụ thuộc vào socket, không phụ thuộc vào messages
 
   const [showDropdownIndex, setShowDropdownIndex] = useState(null);
   // const pinTableRef = useRef(null);

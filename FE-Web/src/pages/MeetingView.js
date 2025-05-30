@@ -180,7 +180,7 @@ function Controls({ meetingId, user }) {
       <Button onClick={handleCamera}>
         <i className="bi bi-telephone-fill"></i> Start Call
       </Button>
-      {/* <Button
+      <Button
         onClick={() => {
           startHls({
             layout: {
@@ -196,7 +196,8 @@ function Controls({ meetingId, user }) {
         }}
       >
         Start HLS
-      </Button> */}
+      </Button>
+      <Button onClick={() => stopHls()}>Stop HLS</Button>
     </div>
   );
 }
@@ -283,7 +284,7 @@ const MeetingView = () => {
       config={{
         meetingId,
         micEnabled: true,
-        webcamEnabled: true,
+        webcamEnabled: false,
         name: user.name || "C.V. Raman",
       }}
       token={authToken}
