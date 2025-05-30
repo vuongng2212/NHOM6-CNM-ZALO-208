@@ -6,7 +6,7 @@ console.log(process.env.REACT_APP_API_URL);
 const axiosClient = axios.create({
 baseURL: process.env.REACT_APP_API_URL
     ? `${process.env.REACT_APP_API_URL}/api`
-    : 'http://13.213.51.67:3000/api', // Sử dụng cổng 3000 thay vì 8000
+    : 'http://localhost:3000/api', 
   headers: {
     'content-type': 'application/json',
   },
